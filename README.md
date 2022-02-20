@@ -19,7 +19,8 @@ If you (for some reason) use DSE in your projects, it would be appreciated if yo
 
 ## Usage
 
-The tool requires Windows 64 bit and a Destiny 2 installation.
+The tool requires Windows 64 bit and a Destiny 2 installation.  
+You also need to copy the "oo2core_8_win64.dll" from your Destiny 2 installation's bin/x64 folder.
 
 The tool is used via the command line:
 
