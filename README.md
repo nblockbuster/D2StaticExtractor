@@ -29,7 +29,7 @@ The tool is used via the command line:
 The required arguments are -p, -o and one of -i or -b.
 - -p \[packages path]: package path for Destiny 2. An example might be C:/Program Files (x86)/Steam/steamapps/common/Destiny 2/packages
 - -o \[output path]: the output path
-- -i \[input hash]: the input hash. To get hashes to extract, either use the batch command or ask others i guess *look for a google sheet posted in ripping sometime*
+- -i \[input hash]: the input hash. To get hashes to extract, either use the batch command or ask others i guess (*look for a google sheet posted in ripping sometime*)
 - -t: enable texture extraction
 - -b \[package ID]: will extract every static model given for a package ID. For the package "w64_venus_300_2", the package ID would be "0300"  
 
