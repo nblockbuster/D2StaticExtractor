@@ -18,7 +18,6 @@
 #include "package.h"
 #include <cmath>
 #include "dxgiformat.h"
-//#include <fbxsdk.h>
 
 std::string getReferenceFromHash(std::string hash, std::string pkgsPath);
 std::string getHash64(uint64_t hash64, std::unordered_map<uint64_t, uint32_t> hash64Table);
@@ -57,10 +56,7 @@ public:
 	std::vector<std::vector<float>> vertColSlots;
 	int lodLevel;
 	std::string name;
-	//Material* material = nullptr;
 	int type;
 	int indexCount;
 	int indexOffset;
-	//PrimitiveType primType;
-	std::vector<MatSplit> indexMatSplit;
 };
