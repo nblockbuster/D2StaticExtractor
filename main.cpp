@@ -254,7 +254,6 @@ int main(int argc, char* argv[])
 		submesh->vertUV.clear();
 		
 		//parse MATERIALS ?
-		//(ill probably fold this into a smaller function that doesnt require rawtex and a temp bin, like MDE)
 		if (sarge.exists("texex")) {
 			hash = modelHash;
 			fileSize = getFile();
@@ -286,11 +285,11 @@ int main(int argc, char* argv[])
 					existingMats.insert(val);
 				}
 			}
-			for (auto hash : externalMaterials) {
+			for (auto exHash : externalMaterials) {
 				unsigned char* matdata = nullptr;
 				int matFileSize;
-				Package matpkg(getPkgID(hash), packagesPath);
-				matdata = matpkg.getEntryData(hash, matFileSize);
+				Package matpkg(getPkgID(exHash), packagesPath);
+				matdata = matpkg.getEntryData(exHash, matFileSize);
 				uint32_t textureCount;
 				uint32_t textureOffset;
 				memcpy((char*)&textureCount, matdata + 0x2A0, 4);
@@ -303,92 +302,93 @@ int main(int argc, char* argv[])
 					memcpy((char*)&textureIndex, matdata + v, 1);
 					memcpy((char*)&val, matdata + v + 8, 4);
 					std::string h64Check = uint32ToHexStr(val);
+					std::string largeHash;
+					uint16_t textureFormat;
+					uint16_t width, height, arraySize;
+					uint32_t hash32;
 					if (h64Check == "ffffffff") {
 						memcpy((char*)&h64Val, matdata + v + 0x10, 8);
 						if (h64Val == 0) continue;
 						std::string textureHash = getHash64(h64Val, hash64Table);
 						if (textureHash != "ffffffff") {
-							unsigned char* headdat = nullptr;
-							Package headpkg(getPkgID(textureHash), packagesPath);
-							int headsize;
-							headdat = headpkg.getEntryData(textureHash, headsize);
-							memcpy((char*)&textureFormat, headdat + 0x4, 4);
-							memcpy((char*)&width, headdat + 0x22, 2);
-							memcpy((char*)&height, headdat + 0x24, 2);
-							memcpy((char*)&val, headdat + 0x3C, 4);
-							largeHash = uint32ToHexStr(val);
-							delete[] headdat;
+							hash = textureHash;
+							pkgID.clear();
+							getFile();
+							memcpy((char*)&textureFormat, data + 0x4, 2);
+							memcpy((char*)&width, data + 0x22, 2);
+							memcpy((char*)&height, data + 0x24, 2);
+							memcpy((char*)&arraySize, data + 0x28, 2);
+							memcpy((char*)&hash32, data + 60, 4);
+							largeHash = uint32ToHexStr(hash32);
+							delete[] data;
 							std::string finalHash = "";
-							if (largeHash != "ffffffff" && largeHash != "")
+							if (largeHash != "ffffffff" && largeHash != "" && largeHash.substr(6, 2) == "80")
 								finalHash = largeHash;
 							else
-								finalHash = headpkg.getEntryReference(textureHash);
+								finalHash = getReferenceFromHash(textureHash, packagesPath);
+							hash = finalHash;
+							pkgID.clear();
+							fileSize = getFile();
 
-							Package datpkg(getPkgID(finalHash), packagesPath);
-							unsigned char* datdat = nullptr;
-							int datsize;
-							datdat = datpkg.getEntryData(finalHash, datsize);
-							FILE* dootfile;
-							fs::create_directory("expath_temp");
-							std::string tempo = "expath_temp\\" + textureHash + ".bin";
-							fopen_s(&dootfile, tempo.c_str(), "wb");
-							fwrite(datdat, datsize, 1, dootfile);
-							fclose(dootfile);
-							std::string rawtex = "rawtexcmd.exe \"" + tempo + "\" " + std::to_string(textureFormat) + " 0 " + std::to_string(width) + " " + std::to_string(height);
-							system(rawtex.c_str());
 							fs::create_directories(outputPath + "/textures");
+							std::string fullSavePath = outputPath + "/textures/" + textureHash + ".DDS";
+							Texture* texture = new Texture();
+							texture->data = data;
+							texture->fileSize = fileSize;
+							texture->textureFormat = textureFormat;
+							texture->width = width;
+							texture->height = height;
+							texture->arraySize = arraySize;
+							texture->writeTexture(fullSavePath);
 
-							//TGA support
+							delete[] data;
+							free(texture);
+							//TGA/PNG/Other support
 							
 							//std::string dxgiFormat = DXGI_FORMAT[textureFormat];
-							//std::string texconv = "texconv.exe \"expath_temp\\" + textureHash + ".dds\" -nologo -o \"" + outputPath + "\\textures" + "\" -y -ft TGA -f " + dxgiFormat;
+							//std::string texconv = "texconv.exe \"" + fullSavePath + "\" -nologo -y -ft TGA -f " + dxgiFormat;
 							//system(texconv.c_str());
-
-							fs::rename("expath_temp/" + textureHash + ".dds", outputPath + "/textures/" + textureHash + ".dds");
-							fs::remove_all("expath_temp");
 						}
 					}
-					else if (val > 0x80000000) {
+					else if (val > 0x80800000U) {
 						std::string textureHash = h64Check;
-						unsigned char* headdat = nullptr;
-						Package headpkg(getPkgID(textureHash), packagesPath);
-						int headsize;
-						headdat = headpkg.getEntryData(textureHash, headsize);
-						memcpy((char*)&textureFormat, headdat + 0x4, 4);
-						memcpy((char*)&width, headdat + 0x22, 2);
-						memcpy((char*)&height, headdat + 0x24, 2);
-						memcpy((char*)&val, headdat + 0x3C, 4);
-						largeHash = uint32ToHexStr(val);
-						delete[] headdat;
+						hash = textureHash;
+						pkgID.clear();
+						getFile();
+						memcpy((char*)&textureFormat, data + 0x4, 2);
+						memcpy((char*)&width, data + 0x22, 2);
+						memcpy((char*)&height, data + 0x24, 2);
+						memcpy((char*)&arraySize, data + 0x28, 2);
+						memcpy((char*)&hash32, data + 60, 4);
+						largeHash = uint32ToHexStr(hash32);
+						delete[] data;
 						std::string finalHash = "";
-
-						if (largeHash != "ffffffff" && largeHash != "")
+						if (largeHash != "ffffffff" && largeHash != "" && largeHash.substr(6, 2) == "80")
 							finalHash = largeHash;
 						else
-							finalHash = headpkg.getEntryReference(textureHash);
+							finalHash = getReferenceFromHash(textureHash, packagesPath);
+						hash = finalHash;
+						pkgID.clear();
+						fileSize = getFile();
 
-						Package datpkg(getPkgID(finalHash), packagesPath);
-						unsigned char* datdat = nullptr;
-						int datsize;
-						datdat = datpkg.getEntryData(finalHash, datsize);
-						FILE* dootfile;
-						fs::create_directory("expath_temp");
-						std::string tempo = "expath_temp\\" + textureHash + ".bin";
-						fopen_s(&dootfile, tempo.c_str(), "wb");
-						fwrite(datdat, datsize, 1, dootfile);
-						fclose(dootfile);
-						std::string rawtex = "rawtexcmd.exe \"" + tempo + "\" " + std::to_string(textureFormat) + " 0 " + std::to_string(width) + " " + std::to_string(height);
-						system(rawtex.c_str());
 						fs::create_directories(outputPath + "/textures");
+						std::string fullSavePath = outputPath + "/textures/" + textureHash + ".DDS";
+						Texture* texture = new Texture();
+						texture->data = data;
+						texture->fileSize = fileSize;
+						texture->textureFormat = textureFormat;
+						texture->width = width;
+						texture->height = height;
+						texture->arraySize = arraySize;
+						texture->writeTexture(fullSavePath);
 
-						//TGA support
+						delete[] data;
+						free(texture);
+						//TGA/PNG/Other support
 
 						//std::string dxgiFormat = DXGI_FORMAT[textureFormat];
-						//std::string texconv = "texconv.exe \"expath_temp\\" + textureHash + ".dds\" -nologo -o \"" + outputPath + "\\textures" + "\" -y -ft TGA -f " + dxgiFormat;
+						//std::string texconv = "texconv.exe \"" + fullSavePath + "\" -nologo -y -ft TGA -f " + dxgiFormat;
 						//system(texconv.c_str());
-
-						fs::rename("expath_temp/" + textureHash + ".dds", outputPath + "/textures/" + textureHash + ".dds");
-						fs::remove_all("expath_temp");
 					}
 				}
 			}
@@ -504,6 +504,7 @@ int getFile()
 	return fileSize;
 }
 
+/*
 void addVertColSlots(Submesh* submesh) {
 	for (auto& w : submesh->vertNormW)
 	{
@@ -532,3 +533,4 @@ void addVertColSlots(Submesh* submesh) {
 		submesh->vertColSlots.push_back(vc);
 	}
 }
+*/
