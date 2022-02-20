@@ -49,21 +49,6 @@ bool parseIndexBufferInMemory(int vertexCount, bool isU32Indexes, int fileSize)
 			b += 3;
 		}
 	}
-
-	//leftover obj exporting code for confirming identical between obj -> fbx
-	
-	//std::string fstr;
-	//std::vector<std::string> fvstr;
-	//for (int k = 0; k < submesh->faces.size(); k++) {
-	//	std::vector<int16_t> face = submesh->faces[k];
-	//	fstr = "f " + std::to_string(face[0] + 1) + "/" + std::to_string(face[0] + 1) + " " + std::to_string(face[1] + 1) + "/" + std::to_string(face[1] + 1) + " " + std::to_string(face[2] + 1) + "/" + std::to_string(face[2] + 1);
-	//	fvstr.push_back(fstr);
-	//}
-	//std::ofstream idx;
-	//idx.open("test.obj", std::ios_base::app);
-	//for (const auto& f : fvstr) idx << f << "\n";
-	//idx.close();
-	//fvstr.clear();
 	return true;
 }
 
@@ -81,21 +66,6 @@ void parseVertexBufferInMemory(int fileSize, float scale)
 		}
 		submesh->vertPos.push_back(vertexpos);
 	}
-
-	//leftover obj exporting code for confirming identical between obj -> fbx
-
-	//std::string xyzw;
-	//std::vector<std::string> vstr;
-	//for (int i = 0; i < submesh->vertPos.size(); i++) {
-	//	std::vector<float_t> v = submesh->vertPos[i];
-	//	xyzw = "v " + to_str(-v[0]) + " " + to_str(v[2]) + " " + to_str(v[1]);
-	//	vstr.push_back(xyzw);
-	//}
-	//std::ofstream vx;
-	//vx.open("test.obj", std::ios_base::app);
-	//for (const auto& v : vstr) vx << v << "\n";
-	//vx.close();
-	//vstr.clear();
 }
 
 void parseVertexNormalsInMemory(int fileSize) {
@@ -131,21 +101,6 @@ void parseUVBufferInMemory(int fileSize, float utrans, float vtrans, float uoff,
 		uvert.push_back(fixv);
 		submesh->vertUV.push_back(uvert);
 	}
-
-	//leftover obj exporting code for confirming identical between obj -> fbx
-
-	//std::string vt;
-	//std::vector<std::string> vtstr;
-	//for (int k = 0; k < submesh->vertUV.size(); k++) {
-	//	std::vector<float_t> uv = submesh->vertUV[k];
-	//	vt = "vt " + to_str(uv[0]) + " " + to_str(uv[1]);
-	//	vtstr.push_back(vt);
-	//}
-	//std::ofstream vtx;
-	//vtx.open("test.obj", std::ios_base::app);
-	//for (const auto& v : vtstr) vtx << v << "\n";
-	//vtx.close();
-	//vtstr.clear();
 }
 
 void parseVCBufferInMemory(int fileSize) {
@@ -216,7 +171,7 @@ int main(int argc, char* argv[])
 		show_usage();
 
 	packagesPath = pkgsPath;
-	#pragma endregion
+#pragma endregion
 
 	#pragma region H64 generation for textures
 
@@ -232,10 +187,10 @@ int main(int argc, char* argv[])
 		hash64Table = generateH64Table(pkgsPath);
 		saveH64Table(hash64Table);
 	}
-	#pragma endregion
+#pragma endregion
 
 	if (sarge.exists("lodcull"))
-		lodCulling = false;
+		lodCulling = true;
 
 	if (modelHash != "") {
 		std::string outputName;
@@ -266,6 +221,7 @@ int main(int argc, char* argv[])
 		if (scale == 0.000000)
 			scale = 1;
 		parseVertexBufferInMemory(fileSize, scale);
+		//for later
 		//parseVertexNormalsInMemory(fileSize);
 		delete[] data;
 		hash = getReferenceFromHash(uint32ToHexStr(uvBuffer), packagesPath);
@@ -276,6 +232,7 @@ int main(int argc, char* argv[])
 		fileSize = getFile();
 		parseIndexBufferInMemory(submesh->vertPos.size(), false, fileSize);
 		delete[] data;
+		//for later
 		/*
 		hash = uint32ToHexStr(vcBuffer);
 		if (hash != "FFFFFFFF"){
