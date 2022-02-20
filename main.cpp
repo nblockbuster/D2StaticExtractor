@@ -189,9 +189,6 @@ int main(int argc, char* argv[])
 	}
 #pragma endregion
 
-	if (sarge.exists("lodcull"))
-		lodCulling = true;
-
 	if (modelHash != "") {
 		std::string outputName;
 		outputPath += "/" + modelHash;
