@@ -17,7 +17,7 @@
 #include <boost/algorithm/string.hpp>
 #include "package.h"
 #include <cmath>
-#include "D:\MontevenDynamicExtractor\dxgiformat.h"
+#include "dxgiformat.h"
 //#include <fbxsdk.h>
 
 std::string getReferenceFromHash(std::string hash, std::string pkgsPath);
@@ -44,12 +44,6 @@ void filePutContents(const std::string& name, const std::string& content);
 
 std::string to_str(double a_value);
 
-struct MatSplit
-{
-	uint32_t off;
-	uint32_t count;
-};
-
 class Submesh
 {
 private:
@@ -70,57 +64,3 @@ public:
 	//PrimitiveType primType;
 	std::vector<MatSplit> indexMatSplit;
 };
-
-/*
-class StaticSubmesh : public Submesh
-{
-private:
-public:
-	std::vector<std::vector<uint8_t>> weightIndices;
-	std::vector<std::vector<float>> weights;
-	std::vector<std::vector<float>> vertColSlots;
-	int stride;
-	//Texture* diffuse = nullptr;
-	int gearDyeChangeColourIndex;
-	int alphaClip;
-	int lodGroup;
-};
-
-
-// Forward declarations
-class IndexBufferHeader;
-class VertexBufferHeader;
-
-class Mesh
-{
-private:
-public:
-	//Mesh() {};
-	IndexBufferHeader* facesFile = nullptr;
-	VertexBufferHeader* vertPosFile = nullptr;
-	VertexBufferHeader* vertUVFile = nullptr;
-	VertexBufferHeader* vertColFile = nullptr;
-	std::vector<std::vector<float>> vertPos;
-	std::vector<std::vector<float>> vertNorm;
-	std::vector<std::vector<float>> vertUV;
-	std::vector<std::vector<float>> vertCol;
-	std::vector<std::vector<uint32_t>> faces;
-	std::unordered_map<int, int> faceMap;
-	std::vector<Submesh*> submeshes;
-};
-
-class StaticMesh : public Mesh
-{
-private:
-public:
-	//DynamicMesh() : Mesh() {};
-	std::vector<int16_t> vertPosW;
-	std::vector<int16_t> vertNormW;
-	bool bCloth = false;
-	std::vector<std::vector<uint8_t>> weightIndices;
-	std::vector<std::vector<float>> weights;
-	std::vector<StaticSubmesh*> submeshes;
-	VertexBufferHeader* oldWeightsFile = nullptr;
-	VertexBufferHeader* spsbWeightsFile = nullptr;
-};
-*/
