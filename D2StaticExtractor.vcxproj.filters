@@ -41,5 +41,8 @@
     <ClInclude Include="fbxmodel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="dxgiformat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
