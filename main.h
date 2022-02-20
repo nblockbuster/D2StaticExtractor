@@ -14,4 +14,4 @@ FbxModel* fbxModel = new FbxModel();
 int stride;
 int getFile();
 std::vector<FbxNode*> nodes;
-void addVertColSlots(Submesh* submesh);
+//void addVertColSlots(Submesh* submesh);
