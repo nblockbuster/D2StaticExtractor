@@ -52,10 +52,12 @@ public:
 	std::vector<std::vector<float>> vertUV;
 	std::vector<std::vector<float>> vertCol;
 	std::vector<std::vector<int16_t>> faces;
+	std::vector<std::vector<uint32_t>> facesu32;
 	std::vector<uint16_t> vertNormW;
 	std::vector<std::vector<float>> vertColSlots;
 	int lodLevel;
 	std::string name;
+	bool isU32;
 	int type;
 	int indexCount;
 	int indexOffset;
