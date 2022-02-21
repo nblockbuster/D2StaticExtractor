@@ -4,6 +4,8 @@ DSE is a static model extraction tool that converts Destiny 2 static models into
 - Texture extraction (DDS -> PNG)
 - Batch package extraction  
 
+**DSE only supports Destiny 2 versions 3.0.0.1 (Beyond Light) -> 4.0.0.1 (The Witch Queen) as of now.**
+
 I will try to add support for these in the near future:
 - Correct UV transforms
 - Correct vertex normals
@@ -16,6 +18,7 @@ Far-off goals:
 - Loadzones
 - Pre-BL
 - Destiny 1  
+
 
 There is no risk of a ban by using this tool.  
 If you (for some reason) use DSE in your projects, it would be appreciated if you credited me and/or 42 
