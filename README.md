@@ -1,6 +1,6 @@
 # D2StaticExtractor (DSE)
 DSE is a static model extraction tool that converts Destiny 2 static models into fbx files. A static model is any model that does **not** move, is animated, or has a skeleton. The extractor has:
-- Texture extraction (DDS, adding TGA & PNG support soon)
+- Texture extraction (DDS -> PNG)
 - Batch package extraction  
 
 I will try to add support for these in the near future:
