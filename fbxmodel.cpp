@@ -20,12 +20,12 @@ FbxMesh* FbxModel::createMesh(Submesh* submesh) {
 		mesh->SetControlPointAt(FbxVector4(-v[0], v[2], v[1]), i);
 	}
 	if (submesh->isU32) {
-		for (auto& face : submesh->facesu32)
+		for (auto& uface : submesh->facesu32)
 		{
 			mesh->BeginPolygon();
-			mesh->AddPolygon(face[0]);
-			mesh->AddPolygon(face[1]);
-			mesh->AddPolygon(face[2]);
+			mesh->AddPolygon(uface[0]);
+			mesh->AddPolygon(uface[1]);
+			mesh->AddPolygon(uface[2]);
 			mesh->EndPolygon();
 		}
 	}

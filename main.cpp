@@ -16,16 +16,16 @@ bool parseIndexBufferInMemory(int vertexCount, int fileSize)
 	int n = vertexCount;
 	for (int i = 0; i < fileSize; i += 0x6) {
 		if (submesh->isU32) {
-			std::vector<uint32_t> intFace;
-			intFace.reserve(3);
+			std::vector<uint32_t> uintFace;
+			uintFace.reserve(3);
 			for (int j = 0; j < 3; j++) {
 				memcpy((char*)&u32face, data + i + j * 4, 4);
-				intFace.push_back(u32face);
+				uintFace.push_back(u32face);
 			}
 			i += 6;
-			if (face > vertexCount)
+			if (u32face > vertexCount)
 				break;
-			submesh->facesu32.push_back(intFace);
+			submesh->facesu32.push_back(uintFace);
 		}
 		else {
 			std::vector<int16_t> intFace;
@@ -241,10 +241,18 @@ int main(int argc, char* argv[])
 		fileSize = getFile();
 		parseUVBufferInMemory(fileSize, utrans, vtrans, uoff, voff);
 		delete[] data;
-		bool isu32 = false;
-		fileSize = getFile();
-		memcpy((void*)&isu32, data + 1, 1);
-		submesh->isU32 = isu32;
+		//uhhh this might work idk
+		uint16_t refpkgid = getPkgID(indexBuffer);
+		Package rpkg(uint16ToHexStr(refpkgid), packagesPath);
+		rpkg.readHeader();
+		rpkg.getEntryTable();
+		Entry refentry = rpkg.entries[indexBuffer % 8192];
+		hash = refentry.reference;
+		int isu32;
+		getFile();
+		memcpy((void*)&isu32, data + 1, 2);
+		if (isu32 == 1)
+			submesh->isU32 = true;
 		delete[] data;
 		hash = uint32ToHexStr(indexBuffer);
 		fileSize = getFile();
@@ -271,6 +279,7 @@ int main(int argc, char* argv[])
 		fbxModel->manager->Destroy();
 
 		submesh->faces.clear();
+		submesh->facesu32.clear();
 		submesh->vertPos.clear();
 		submesh->vertUV.clear();
 
@@ -432,11 +441,6 @@ int main(int argc, char* argv[])
 		{
 			if (modelhash == "")
 				break;
-			outputName = outputPath + modelhash + ".obj";
-			if (fs::exists(outputName) || fs::exists(outputPath + modelhash + ".fbx")) {
-				printf("Output file already exists.\n");
-				continue;
-			}
 			int fileSize = 0;
 			hash.clear();
 			pkgID.clear();
@@ -468,28 +472,44 @@ int main(int argc, char* argv[])
 			if (scale == 0.000000)
 				scale = 1;
 			parseVertexBufferInMemory(fileSize, scale);
+			//for later
+			//parseVertexNormalsInMemory(fileSize);
 			delete[] data;
-			hash.clear();
-			pkgID.clear();
-			if (uvBuffer == 0xFFFFFFFF)
-				continue;
-			else {
-				hash = getReferenceFromHash(uint32ToHexStr(uvBuffer), packagesPath);
-				fileSize = getFile();
-				parseUVBufferInMemory(fileSize, utrans, vtrans, uoff, voff);
-				delete[] data;
-				hash.clear();
-			}
-			bool isu32 = false;
+			hash = getReferenceFromHash(uint32ToHexStr(uvBuffer), packagesPath);
 			fileSize = getFile();
-			memcpy((void*)&isu32, data + 1, 1);
-			submesh->isU32 = isu32;
+			parseUVBufferInMemory(fileSize, utrans, vtrans, uoff, voff);
+			delete[] data;
+			
+			//hash = getReferenceFromHash(uint32ToHexStr(indexBuffer), packagesPath);
+			//getFile();
+			//memcpy((char*)&isu32, data + 1, 1);
+
+			uint16_t refpkgid = getPkgID(indexBuffer);
+			Package rpkg(uint16ToHexStr(refpkgid), packagesPath);
+			rpkg.readHeader();
+			rpkg.getEntryTable();
+			Entry refentry = rpkg.entries[indexBuffer % 8192];
+			hash = refentry.reference;
+			int isu32;
+			getFile();
+			memcpy((void*)&isu32, data + 1, 2);
+			if (isu32 == 1)
+				submesh->isU32 = true;
 			delete[] data;
 			hash = uint32ToHexStr(indexBuffer);
 			fileSize = getFile();
 			parseIndexBufferInMemory(submesh->vertPos.size(), fileSize);
 			delete[] data;
-
+			//for later
+			/*
+			hash = uint32ToHexStr(vcBuffer);
+			if (hash != "FFFFFFFF"){
+				fileSize = getFile();
+				parseVCBufferInMemory(fileSize);
+				delete[] data;
+				addVertColSlots(submesh);
+			}
+			*/
 			std::string fbxpath = outputPath + "/" + modelhash + ".fbx";
 
 			submesh->name = modelhash.c_str();
@@ -500,12 +520,9 @@ int main(int argc, char* argv[])
 			fbxModel->save(fbxpath, false);
 
 			submesh->faces.clear();
+			submesh->facesu32.clear();
 			submesh->vertPos.clear();
 			submesh->vertUV.clear();
-			submesh->vertNorm.clear();
-			submesh->vertNormW.clear();
-			submesh->vertCol.clear();
-			submesh->vertColSlots.clear();
 
 			std::cout << modelhash + ".fbx extracted.\n";
 			submesh->name.clear();
