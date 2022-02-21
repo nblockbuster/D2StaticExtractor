@@ -24,14 +24,15 @@ You also need to copy the "oo2core_8_win64.dll" from your Destiny 2 installation
 
 The tool is used via the command line:
 
-`D2StaticExtractor.exe -p [packages path] -o [output path] -i [singular hash] -t -b [package id]`
+`D2StaticExtractor.exe -p [packages path] -o [output path] -i [singular hash] -b [package id] -t -l`
 
 The required arguments are -p, -o and one of -i or -b.
-- -p \[packages path]: package path for Destiny 2. An example might be C:/Program Files (x86)/Steam/steamapps/common/Destiny 2/packages
+- -p \[packages path]: package path for Destiny 2. An example might be "C:/Program Files (x86)/Steam/steamapps/common/Destiny 2/packages"
 - -o \[output path]: the output path
 - -i \[input hash]: the input hash. To get hashes to extract, either use the batch command or ask others i guess (*look for a google sheet posted in ripping sometime*)
 - -t: enable texture extraction
-- -b \[package ID]: will extract every static model given for a package ID. For the package "w64_venus_300_2", the package ID would be "0300"  
+- -b \[package ID]: will extract every static model given for a package ID. For the package "w64_venus_300_2", the package ID would be "0300"
+- -l: Enables hacky LOD culling  
 
 ## Thanks
 Getting to this point in datamining, and this project, wouldn't have been possible without the support from these (and many more) people's support:
