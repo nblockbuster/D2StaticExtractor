@@ -253,7 +253,7 @@ int main(int argc, char* argv[])
 		submesh->faces.clear();
 		submesh->vertPos.clear();
 		submesh->vertUV.clear();
-		
+
 		//parse MATERIALS ?
 		if (sarge.exists("texex")) {
 			hash = modelHash;
@@ -345,7 +345,7 @@ int main(int argc, char* argv[])
 							delete[] data;
 							free(texture);
 							//TGA/PNG/Other support
-							
+
 							std::string dxgiFormat = DXGI_FORMAT[textureFormat];
 							std::string texconv = "texconv.exe \"" + fullSavePath + "\" -nologo -y -ft PNG -f " + dxgiFormat;
 							system(texconv.c_str());
@@ -400,7 +400,6 @@ int main(int argc, char* argv[])
 
 		std::cout << modelHash + ".fbx extracted.\n";
 	}
-
 	else if (batchPkg != "") {
 		std::string outputName;
 		Package pkg(batchPkg, packagesPath);
@@ -434,10 +433,8 @@ int main(int argc, char* argv[])
 			memcpy((char*)&vertexBuffer, data + fileSize - 0x10, 4);
 			memcpy((char*)&uvBuffer, data + fileSize - 0xC, 4);
 			memcpy((char*)&vcBuffer, data + fileSize - 0x8, 4);
-			if (indexBuffer < 0x80800000 || vertexBuffer < 0x80800000 || uvBuffer < 0x80800000 || vcBuffer < 0x80800000) {
-				std::cout << std::to_string(indexBuffer) + " " + std::to_string(vertexBuffer) + " " + std::to_string(uvBuffer) + " " + std::to_string(vcBuffer) << std::endl;
+			if (indexBuffer < 0x80800000 || vertexBuffer < 0x80800000 || uvBuffer < 0x80800000 || vcBuffer < 0x80800000)
 				continue;
-			}
 			float utrans, vtrans, uoff, voff;
 			memcpy((void*)&utrans, data + 0x58, 4);
 			memcpy((void*)&vtrans, data + 0x5C, 4);
