@@ -6,23 +6,38 @@ namespace fs = std::filesystem;
 
 #pragma region Parsers
 
-bool parseIndexBufferInMemory(int vertexCount, bool isU32Indexes, int fileSize)
+bool parseIndexBufferInMemory(int vertexCount, int fileSize)
 {
 	int e = 0;
 	int b = 0;
 	int l = 0;
 	int16_t face;
+	uint32_t u32face;
 	int n = vertexCount;
 	for (int i = 0; i < fileSize; i += 0x6) {
-		std::vector<int16_t> intFace;
-		intFace.reserve(3);
-		for (int j = 0; j < 3; j++) {
-			memcpy((char*)&face, data + i + j * 2, 2);
-			intFace.push_back(face);
+		if (submesh->isU32) {
+			std::vector<uint32_t> intFace;
+			intFace.reserve(3);
+			for (int j = 0; j < 3; j++) {
+				memcpy((char*)&u32face, data + i + j * 4, 4);
+				intFace.push_back(u32face);
+			}
+			i += 6;
+			if (face > vertexCount)
+				break;
+			submesh->facesu32.push_back(intFace);
 		}
-		if (face > vertexCount)
-			break;
-		submesh->faces.push_back(intFace);
+		else {
+			std::vector<int16_t> intFace;
+			intFace.reserve(3);
+			for (int j = 0; j < 3; j++) {
+				memcpy((char*)&face, data + i + j * 2, 2);
+				intFace.push_back(face);
+			}
+			if (face > vertexCount)
+				break;
+			submesh->faces.push_back(intFace);
+		}
 		//im not proud of this...
 		//it also doesnt work half the time :]
 		if (lodCulling) {
@@ -226,9 +241,14 @@ int main(int argc, char* argv[])
 		fileSize = getFile();
 		parseUVBufferInMemory(fileSize, utrans, vtrans, uoff, voff);
 		delete[] data;
+		bool isu32 = false;
+		fileSize = getFile();
+		memcpy((void*)&isu32, data + 1, 1);
+		submesh->isU32 = isu32;
+		delete[] data;
 		hash = uint32ToHexStr(indexBuffer);
 		fileSize = getFile();
-		parseIndexBufferInMemory(submesh->vertPos.size(), false, fileSize);
+		parseIndexBufferInMemory(submesh->vertPos.size(), fileSize);
 		delete[] data;
 		//for later
 		/*
@@ -460,9 +480,14 @@ int main(int argc, char* argv[])
 				delete[] data;
 				hash.clear();
 			}
+			bool isu32 = false;
+			fileSize = getFile();
+			memcpy((void*)&isu32, data + 1, 1);
+			submesh->isU32 = isu32;
+			delete[] data;
 			hash = uint32ToHexStr(indexBuffer);
 			fileSize = getFile();
-			parseIndexBufferInMemory(submesh->vertPos.size(), false, fileSize);
+			parseIndexBufferInMemory(submesh->vertPos.size(), fileSize);
 			delete[] data;
 
 			std::string fbxpath = outputPath + "/" + modelhash + ".fbx";
