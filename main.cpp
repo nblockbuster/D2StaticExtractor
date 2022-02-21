@@ -345,9 +345,10 @@ int main(int argc, char* argv[])
 							free(texture);
 							//TGA/PNG/Other support
 							
-							//std::string dxgiFormat = DXGI_FORMAT[textureFormat];
-							//std::string texconv = "texconv.exe \"" + fullSavePath + "\" -nologo -y -ft TGA -f " + dxgiFormat;
-							//system(texconv.c_str());
+							std::string dxgiFormat = DXGI_FORMAT[textureFormat];
+							std::string texconv = "texconv.exe \"" + fullSavePath + "\" -nologo -y -ft PNG -f " + dxgiFormat;
+							system(texconv.c_str());
+							fs::remove(fullSavePath);
 						}
 					}
 					else if (val > 0x80800000U) {
@@ -386,9 +387,10 @@ int main(int argc, char* argv[])
 						free(texture);
 						//TGA/PNG/Other support
 
-						//std::string dxgiFormat = DXGI_FORMAT[textureFormat];
-						//std::string texconv = "texconv.exe \"" + fullSavePath + "\" -nologo -y -ft TGA -f " + dxgiFormat;
-						//system(texconv.c_str());
+						std::string dxgiFormat = DXGI_FORMAT[textureFormat];
+						std::string texconv = "texconv.exe \"" + fullSavePath + "\" -nologo -y -ft PNG -f " + dxgiFormat;
+						system(texconv.c_str());
+						fs::remove(fullSavePath);
 					}
 				}
 			}
