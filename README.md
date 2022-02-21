@@ -12,7 +12,9 @@ I will try to add support for these in the near future:
 - Other better fixes I guess  
 
 Far-off goals:
-- Loadzones  
+- Loadzones
+- Pre-BL
+- Destiny 1  
 
 There is no risk of a ban by using this tool.  
 If you (for some reason) use DSE in your projects, it would be appreciated if you credited me and/or 42 
