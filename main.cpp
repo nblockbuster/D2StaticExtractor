@@ -241,11 +241,19 @@ int main(int argc, char* argv[])
 		fileSize = getFile();
 		parseUVBufferInMemory(fileSize, utrans, vtrans, uoff, voff);
 		delete[] data;
-		//bool isu32 = false;
-		//fileSize = getFile();
-		//memcpy((void*)&isu32, data + 1, 1);
-		//submesh->isU32 = isu32;
-		//delete[] data;
+		//uhhh this might work idk
+		uint16_t refpkgid = getPkgID(indexBuffer);
+		Package rpkg(uint16ToHexStr(refpkgid), packagesPath);
+		rpkg.readHeader();
+		rpkg.getEntryTable();
+		Entry refentry = rpkg.entries[indexBuffer % 8192];
+		hash = refentry.reference;
+		int isu32;
+		getFile();
+		memcpy((void*)&isu32, data + 1, 2);
+		if (isu32 == 1)
+			submesh->isU32 = true;
+		delete[] data;
 		hash = uint32ToHexStr(indexBuffer);
 		fileSize = getFile();
 		parseIndexBufferInMemory(submesh->vertPos.size(), fileSize);
@@ -471,12 +479,23 @@ int main(int argc, char* argv[])
 			fileSize = getFile();
 			parseUVBufferInMemory(fileSize, utrans, vtrans, uoff, voff);
 			delete[] data;
-			//bool isu32 = false;
+			
 			//hash = getReferenceFromHash(uint32ToHexStr(indexBuffer), packagesPath);
 			//getFile();
 			//memcpy((char*)&isu32, data + 1, 1);
-			//submesh->isU32 = isu32;
-			//delete[] data;
+
+			uint16_t refpkgid = getPkgID(indexBuffer);
+			Package rpkg(uint16ToHexStr(refpkgid), packagesPath);
+			rpkg.readHeader();
+			rpkg.getEntryTable();
+			Entry refentry = rpkg.entries[indexBuffer % 8192];
+			hash = refentry.reference;
+			int isu32;
+			getFile();
+			memcpy((void*)&isu32, data + 1, 2);
+			if (isu32 == 1)
+				submesh->isU32 = true;
+			delete[] data;
 			hash = uint32ToHexStr(indexBuffer);
 			fileSize = getFile();
 			parseIndexBufferInMemory(submesh->vertPos.size(), fileSize);
