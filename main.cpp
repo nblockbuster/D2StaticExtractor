@@ -174,19 +174,20 @@ int main(int argc, char* argv[])
 #pragma endregion
 
 	#pragma region H64 generation for textures
-
 	std::unordered_map<uint64_t, uint32_t> hash64Table;
-	std::ifstream f("h64");
-	if (f) {
-		hash64Table = loadH64Table();
-		if (hash64Table.size() < 10000) {
-			hash64Table = generateH64Table(pkgsPath);
+	if (sarge.exists("texex")) {
+		std::ifstream f("h64");
+		if (f) {
+			hash64Table = loadH64Table();
+			if (hash64Table.size() < 10000) {
+				hash64Table = generateH64Table(pkgsPath);
+			}
 		}
-	}
-	else {
-		hash64Table = generateH64Table(pkgsPath);
-		saveH64Table(hash64Table);
-	}
+		else {
+			hash64Table = generateH64Table(pkgsPath);
+			saveH64Table(hash64Table);
+		}
+	}	
 #pragma endregion
 
 	if (modelHash != "") {
