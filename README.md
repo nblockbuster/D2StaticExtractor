@@ -4,7 +4,7 @@ DSE is a static model extraction tool that converts Destiny 2 static models into
 - Texture extraction (DDS -> PNG)
 - Batch package extraction  
 
-**DSE only supports Destiny 2 versions 3.0.0.1 (Beyond Light) -> 4.0.0.1 (The Witch Queen) as of now.**
+**DSE only supports Destiny 2 versions past 3.0.0.1 (Beyond Light) -> 4.0.0.1 (The Witch Queen) as of now.**
 
 I will try to add support for these in the near future:
 - Correct UV transforms
@@ -26,7 +26,7 @@ If you (for some reason) use DSE in your projects, it would be appreciated if yo
 ## Usage
 
 The tool requires Windows 64 bit and a Destiny 2 installation.  
-You also need to copy the "oo2core_8_win64.dll" from your Destiny 2 installation's bin/x64 folder.
+You also need to copy the "oo2core_9_win64.dll" from your Destiny 2 installation's bin/x64 folder.
 
 The tool is used via the command line:
 
