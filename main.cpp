@@ -189,6 +189,7 @@ int main(int argc, char* argv[])
 #pragma endregion
 
 	#pragma region H64 generation for textures
+
 	std::unordered_map<uint64_t, uint32_t> hash64Table;
 	if (sarge.exists("texex")) {
 		std::ifstream f("h64");
@@ -203,6 +204,7 @@ int main(int argc, char* argv[])
 			saveH64Table(hash64Table);
 		}
 	}	
+
 #pragma endregion
 
 	if (modelHash != "") {
@@ -322,12 +324,32 @@ int main(int argc, char* argv[])
 				matdata = matpkg.getEntryData(exHash, matFileSize);
 				uint32_t textureCount;
 				uint32_t textureOffset;
-				memcpy((char*)&textureCount, matdata + 0x2A0, 4);
+				memcpy((char*)&textureCount, matdata + 0x2B8, 4);
 				if (textureCount == 0) continue;
-				memcpy((char*)&textureOffset, matdata + 0x2A8, 4);
-				textureOffset += 0x2A8 + 0x10;
+				//memcpy((char*)&textureOffset, matdata + 0x2D8, 4);
+				//textureOffset += 488 + 0x10;
+				extOff = matFileSize - 16;
+				bFound = false;
+				while (true)
+				{
+					if (extOff == 0)
+						break;
+					memcpy((char*)&val, matdata + extOff, 4);
+					if (val == 0x80806DCF)
+					{
+						bFound = true;
+						extOff += 8;
+						textureOffset = extOff;
+						break;
+					}
+					extOff -= 4;
+				}
+				if (!bFound) {
+					continue;
+				}
 				uint64_t h64Val;
 				for (int v = textureOffset; v < textureOffset + textureCount * 0x18; v += 0x18) {
+					//std::cout << std::to_string(v) << "\n";
 					uint8_t textureIndex;
 					memcpy((char*)&textureIndex, matdata + v, 1);
 					memcpy((char*)&val, matdata + v + 8, 4);
