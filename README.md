@@ -5,6 +5,7 @@ DSE is a static model extraction tool that converts Destiny 2 static models into
 - Batch package extraction  
 
 **DSE only supports Destiny 2 versions past 3.0.0.1 (Beyond Light) -> 4.0.0.1 (The Witch Queen) as of now.**
+**Textures only work past 4.0.0.1**
 
 I will try to add support for these in the near future:
 - Correct UV transforms
