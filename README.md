@@ -1,19 +1,16 @@
 # [Download from here](https://github.com/nblockbuster/D2StaticExtractor/releases/latest)
 # D2StaticExtractor (DSE)
-DSE is a static model extraction tool that converts Destiny 2 static models into fbx files. A static model is any model that does **not** move, is animated, or has a skeleton. The extractor has:
-- Texture extraction (DDS -> PNG)
-- Batch package extraction  
+DSE is a static model extraction tool that converts Destiny 2 static models into fbx files. A static model is any model that **does not** move, is **not** animated, or **doesn't** have a skeleton.  
 
 **DSE only supports Destiny 2 versions past 3.0.0.1 (Beyond Light) as of now.**   
-**Textures only work past 4.0.0.1.**
+**Textures only work past 4.0.0.1 (TWQ), unless you usea previous release.**
 
 I will try to add support for these in the near future:
-- Correct UV transforms
+- Correct UV transforms (just a bit of scaling & positioning now!) 
 - Correct vertex normals
 - Vertex color
-- Full working LOD culling
-- Seperating models by material used
-- Other better fixes I guess  
+- Full working LOD culling (working on it!!)
+- Seperating models by material used (also working on it!)  
 
 Far-off goals:
 - Loadzones
