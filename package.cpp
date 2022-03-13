@@ -296,7 +296,7 @@ void Package::decompressBlock(Block block, unsigned char* decryptBuffer, unsigne
 
 bool Package::initOodle()
 {
-	hOodleDll = LoadLibrary(L"oo2core_8_win64.dll");
+	hOodleDll = LoadLibrary(L"oo2core_9_win64.dll");
 	if (hOodleDll == nullptr) {
 		return false;
 	}
@@ -407,24 +407,7 @@ unsigned char* Package::getEntryData(std::string hash, int& fileSize)
 	fread((char*)&entryD, 1, 4, pkgFile);
 	entry.fileSize = (entryD & 0x3FFFFFF) << 4 | (entryC >> 28) & 0xF;
 
-	//i dont remember why i did this :]
-
-	if (entry.fileSize == 12 || entry.fileSize == 24)
-	{
-		uint32_t refid = hexStrToUint32(getReferenceFromHash(hash, packagesPath)) % 8192;
-
-		// EntryC
-		uint32_t entryC;
-		fseek(pkgFile, header.entryTableOffset + refid * 16 + 8, SEEK_SET);
-		fread((char*)&entryC, 1, 4, pkgFile);
-		entry.startingBlock = entryC & 0x3FFF;
-		entry.startingBlockOffset = ((entryC >> 14) & 0x3FFF) << 4;
-
-		// EntryD
-		uint32_t entryD;
-		fread((char*)&entryD, 1, 4, pkgFile);
-		entry.fileSize = (entryD & 0x3FFFFFF) << 4 | (entryC >> 28) & 0xF;
-	}
+	//i dont remember why i did this but its gone now :]
 
 	fileSize = entry.fileSize;
 

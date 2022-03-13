@@ -43,6 +43,12 @@ void filePutContents(const std::string& name, const std::string& content);
 
 std::string to_str(double a_value);
 
+struct LODSplit
+{
+	uint32_t off;
+	uint32_t count;
+};
+
 class Submesh
 {
 private:
@@ -59,6 +65,5 @@ public:
 	std::string name;
 	bool isU32;
 	int type;
-	int indexCount;
-	int indexOffset;
+	std::vector<LODSplit> lodsplit;
 };
