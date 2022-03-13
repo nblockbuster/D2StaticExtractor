@@ -280,11 +280,6 @@ int main(int argc, char* argv[])
 		memcpy((void*)&uscale, data + 0x54, 4);
 		memcpy((void*)&vscale, data + 0x58, 4);
 
-
-		//memcpy((void*)&uscale, data + 0x54, 4);
-		//memcpy((void*)&vscale, data + 0x58, 4);
-		//memcpy((void*)&uoff, data + 0x48, 4);
-		//memcpy((void*)&voff, data + 0x4C, 4);
 		//This is very experimental and doesn't work yet.
 		/*
 		uint32_t val, amountLOD;
@@ -604,10 +599,10 @@ int main(int argc, char* argv[])
 			if (indexBuffer < 0x80800000 || vertexBuffer < 0x80800000 || uvBuffer < 0x80800000 || vcBuffer < 0x80800000)
 				continue;
 			float uoff, voff, uscale, vscale;
-			memcpy((void*)&uscale, data + 0x54, 4);
-			memcpy((void*)&vscale, data + 0x58, 4);
 			memcpy((void*)&uoff, data + 0x48, 4);
 			memcpy((void*)&voff, data + 0x4C, 4);
+			memcpy((void*)&uscale, data + 0x54, 4);
+			memcpy((void*)&vscale, data + 0x58, 4);
 			//This is very experimental and doesn't work yet.
 		/*
 		uint32_t val, amountLOD;
