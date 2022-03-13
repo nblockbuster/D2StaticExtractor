@@ -9,8 +9,8 @@ namespace fs = std::filesystem;
 bool parseIndexBufferInMemory(int vertexCount, int fileSize)
 {
 	//Submesh* sub;
-	std::vector<std::vector<int16_t>> facesi16;
-	std::vector<std::vector<uint32_t>> facesu32;
+	//std::vector<std::vector<int16_t>> facesi16;
+	//std::vector<std::vector<uint32_t>> facesu32;
 	int e = 0;
 	int b = 0;
 	int l = 0;
@@ -28,7 +28,8 @@ bool parseIndexBufferInMemory(int vertexCount, int fileSize)
 			i += 6;
 			if (u32face > vertexCount)
 				break;
-			facesu32.push_back(uintFace);
+			//facesu32.push_back(uintFace);
+			submesh->facesu32.push_back(uintFace);
 		}
 		else {
 			std::vector<int16_t> intFace;
@@ -39,32 +40,11 @@ bool parseIndexBufferInMemory(int vertexCount, int fileSize)
 			}
 			if (face > vertexCount)
 				break;
-			facesi16.push_back(intFace);
+			//facesi16.push_back(intFace);
+			submesh->faces.push_back(intFace);
 		}
 		if (lodCulling) {
-			//int c = 0;
-			//if (submesh->lodsplit[c].off != (submesh->lodsplit[c-1].off + submesh->lodsplit[c-1].count)) {
-				//c += 1;
-				//std::cout << std::to_string(c) << "\n";
-			//}
-			/*
-			if (i == (submesh->lodsplit[c].off + submesh->lodsplit[c].count)) {
-				if (facesu32.size()) {
-					submesh->facesu32 = facesu32;
-					submeshes.push_back(submesh);
-					facesu32.clear();
-					c += 1;
-				}
-				else {
-					submesh->faces = facesi16;
-					submeshes.push_back(submesh);
-					facesi16.clear();
-					c+=1;
-				}
-			}
-			*/
 			if (b > fileSize / 3) {
-
 				if (fileSize > 12500) {
 					if (submesh->faces[l][0] + 8000 < submesh->faces[l - 2][0] && submesh->faces[l][1] + 8000 < submesh->faces[l - 2][1] && submesh->faces[l][2] + 8000 < submesh->faces[l - 2][2]) {
 						submesh->faces.resize(submesh->faces.size() - 1);
@@ -84,9 +64,35 @@ bool parseIndexBufferInMemory(int vertexCount, int fileSize)
 			}
 			l += 1;
 			b += 3;
+			/*
+			int c = 0;
+			if (submesh->lodsplit[c].off != (submesh->lodsplit[c-1].off + submesh->lodsplit[c-1].count)) {
+				c += 1;
+				std::cout << std::to_string(c) << "\n";
+			}
+			if (i == (submesh->lodsplit[c].off + submesh->lodsplit[c].count)) {
+				if (facesu32.size()) {
+					submesh->facesu32 = facesu32;
+					submeshes.push_back(submesh);
+					facesu32.clear();
+					c += 1;
+				}
+				else {
+					submesh->faces = facesi16;
+					submeshes.push_back(submesh);
+					facesi16.clear();
+					c+=1;
+				}
+			}
+			l += 1;
+			b += 3;
+			*/
 		}
 	}
 	//Submesh* submesh2 = new Submesh();
+	//submesh2->vertCol = submesh->vertCol;
+	//submesh2->vertColSlots = submesh->vertColSlots;
+	//submesh2->vertNorm = submesh->vertNorm;
 	//submesh2->vertPos = submesh->vertPos;
 	//submesh2->vertUV = submesh->vertUV;
 	//submesh2->faces = facesi16;
@@ -138,8 +144,13 @@ void parseUVBufferInMemory(int fileSize, float uoff, float voff, float uscale, f
 		memcpy((char*)&u, data + i, 2);
 		memcpy((char*)&v, data + i + 2, 2);
 		//i need to fix this because it isnt right still
-		float fixu = ((float)u / 32767) * uscale + uoff;// *0.08;
-		float fixv = ((float)v / 32767) * -vscale + voff;// *0.08;
+		//how did i have this backwards??
+		//eh who cares
+		//OFF IS SCALE AND SCALE IS OFF NOW
+		float fixu = ((float)u / 32767) * uoff + uscale;// *0.08;
+		float fixv = ((float)v / 32767) * -voff + vscale;// *0.08;
+		//float fixu = ((float)u / 32767) * uscale + uoff;// *0.08;
+		//float fixv = ((float)v / 32767) * -vscale + voff;// *0.08;
 		uvert.push_back(fixu);
 		uvert.push_back(fixv);
 		submesh->vertUV.push_back(uvert);
@@ -168,17 +179,20 @@ void parseVCBufferInMemory(int fileSize) {
 
 static void show_usage()
 {
-	std::cerr << "Usage: D2StaticExtractor -p [packages path] -o [output path] -i [input hash] -b [package ID] -l -t"
+	std::cerr << "Usage: D2StaticExtractor -p [packages path] -o [output path] -i [input hash] -b [package ID] -f [filetype] -l -t"
 		<< std::endl;
 	std::cerr << "-i extracts a single main model hash\n";
 	std::cerr << "-b extracts all the static models available for that package ID. (-t is ignored)\n";
 	std::cerr << "-l disables hacky lod culling\n";
 	std::cerr << "-t extracts textures for given model\n";
+	std::cerr << "-f changes the file type that the textures are output to. (default PNG) Valid types:\n";
+	std::cerr << "bmp, jpg/jpeg, png, dds, tga, hdr, tif/tiff, wdp/hdp/jxr, ppm/pfm\n";
+	//Found here, under the file-type list: https://github.com/Microsoft/DirectXTex/wiki/Texconv#optional-switches-description
 }
 
 int main(int argc, char* argv[])
 {
-#pragma region Sarge stuff
+#pragma region Sarge
 
 	Sarge sarge;
 	sarge.setArgument("p", "pkgspath", "pkgs path", true);
@@ -187,6 +201,7 @@ int main(int argc, char* argv[])
 	sarge.setArgument("b", "batch", "batch with pkg ID", true);
 	sarge.setArgument("l", "lodcull", "disable lod culling", false);
 	sarge.setArgument("t", "texex", "texture extraction", false);
+	sarge.setArgument("f", "filetype", "type to convert to", true);
 
 	sarge.setDescription("Destiny 2 static model extractor by nblock.");
 	sarge.setUsage("D2StaicExtractor");
@@ -200,6 +215,7 @@ int main(int argc, char* argv[])
 
 	std::string pkgsPath, outputPath, batchPkg;
 	std::string modelHash = "";
+	std::string texTypeIn = "";
 
 	uint32_t sfhash32;
 	float scale = 1;
@@ -207,6 +223,7 @@ int main(int argc, char* argv[])
 	sarge.getFlag("outputpath", outputPath);
 	sarge.getFlag("inputhash", modelHash);
 	sarge.getFlag("batch", batchPkg);
+	sarge.getFlag("filetype", texTypeIn);
 
 	lodCulling = true;
 	if (sarge.exists("lodcull"))
@@ -218,7 +235,7 @@ int main(int argc, char* argv[])
 	packagesPath = pkgsPath;
 #pragma endregion
 
-#pragma region H64 generation for textures
+#pragma region H64
 
 	std::unordered_map<uint64_t, uint32_t> hash64Table;
 	if (sarge.exists("texex")) {
@@ -258,10 +275,16 @@ int main(int argc, char* argv[])
 		memcpy((char*)&uvBuffer, data + fileSize - 0xC, 4);
 		memcpy((char*)&vcBuffer, data + fileSize - 0x8, 4);
 		float uoff, voff, uscale, vscale;
-		memcpy((void*)&uscale, data + 0x54, 4);
-		memcpy((void*)&vscale, data + 0x58, 4);
 		memcpy((void*)&uoff, data + 0x48, 4);
 		memcpy((void*)&voff, data + 0x4C, 4);
+		memcpy((void*)&uscale, data + 0x54, 4);
+		memcpy((void*)&vscale, data + 0x58, 4);
+
+
+		//memcpy((void*)&uscale, data + 0x54, 4);
+		//memcpy((void*)&vscale, data + 0x58, 4);
+		//memcpy((void*)&uoff, data + 0x48, 4);
+		//memcpy((void*)&voff, data + 0x4C, 4);
 		//This is very experimental and doesn't work yet.
 		/*
 		uint32_t val, amountLOD;
@@ -341,10 +364,9 @@ int main(int argc, char* argv[])
 		fileSize = getFile();
 		parseIndexBufferInMemory(submesh->vertPos.size(), fileSize);
 		delete[] data;
-		//for later
 		/*
-		hash = uint32ToHexStr(vcBuffer);
-		if (hash != "FFFFFFFF"){
+		hash = getReferenceFromHash(uint32ToHexStr(vcBuffer), packagesPath);
+		if (hash != "ffffffff"){
 			fileSize = getFile();
 			parseVCBufferInMemory(fileSize);
 			delete[] data;
@@ -352,18 +374,19 @@ int main(int argc, char* argv[])
 		}
 		*/
 		std::string fbxpath = outputPath + "/" + modelHash + ".fbx";
-
-		submeshes.push_back(submesh);
-
-		FbxNode* node = fbxModel->addSubmeshToFbx(submesh);
-		nodes.push_back(node);
+		submesh->name = modelHash;
+		//submeshes.push_back(submesh);
 
 		//for (int i = 0; i < submeshes.size(); i++) {
 		//	Submesh* sub = submeshes[i];
-		//	sub->name = modelhash + "_" + std::to_string(i);
+		//	sub->name = modelHash + "_" + std::to_string(i);
 		//	FbxNode* node = fbxModel->addSubmeshToFbx(sub);
 		//	nodes.push_back(node);
 		//}
+
+
+		FbxNode* node = fbxModel->addSubmeshToFbx(submesh);
+		nodes.push_back(node);
 
 		if (nodes.size()) {
 			for (auto& node : nodes) fbxModel->scene->GetRootNode()->AddChild(node);
@@ -375,9 +398,25 @@ int main(int argc, char* argv[])
 		submesh->facesu32.clear();
 		submesh->vertPos.clear();
 		submesh->vertUV.clear();
+		submesh->vertNorm.clear();
+		submesh->vertNormW.clear();
 
 		//parse MATERIALS ?
 		if (sarge.exists("texex")) {
+			std::string texType;
+			std::vector<std::string> validTypes = { "png","jpg","jpeg","bmp","dds","tga","hdr","tif","tiff","wdp","hdp","jxr","ppm","pfm" };
+			if (texTypeIn == "")
+			{
+				texType == "PNG";
+			}
+			else
+			{
+				for (const auto& type : validTypes)
+				{
+					if (boost::iequals(texTypeIn, type))
+						texType = boost::to_upper_copy(type);
+				}
+			}
 			hash = modelHash;
 			fileSize = getFile();
 			uint32_t val;
@@ -417,15 +456,12 @@ int main(int argc, char* argv[])
 				uint32_t textureOffset;
 				memcpy((char*)&textureCount, matdata + 0x2B8, 4);
 				if (textureCount == 0) continue;
-				memcpy((char*)&textureOffset, matdata + 0x2D0, 4);
-				textureOffset += 0x2F0 + 8;
-				/*
+				//memcpy((char*)&textureOffset, matdata + 0x308, 4);
+				//textureOffset += 488 + 0x10;			
 				extOff = matFileSize - 16;
 				bFound = false;
 				while (true)
 				{
-					if (extOff == 0)
-						break;
 					memcpy((char*)&val, matdata + extOff, 4);
 					if (val == 0x80806DCF)
 					{
@@ -436,13 +472,11 @@ int main(int argc, char* argv[])
 					}
 					extOff -= 4;
 				}
-				if (!bFound) {
+				if (!bFound)
 					continue;
-				}
-				*/
 				uint64_t h64Val;
 				for (int v = textureOffset; v < textureOffset + textureCount * 0x18; v += 0x18) {
-					//std::cout << std::to_string(v) << "\n";
+					std::cout << std::to_string(v) << "\n";
 					uint8_t textureIndex;
 					memcpy((char*)&textureIndex, matdata + v, 1);
 					memcpy((char*)&val, matdata + v + 8, 4);
@@ -455,46 +489,44 @@ int main(int argc, char* argv[])
 						memcpy((char*)&h64Val, matdata + v + 0x10, 8);
 						if (h64Val == 0) continue;
 						std::string textureHash = getHash64(h64Val, hash64Table);
-						if (textureHash != "ffffffff") {
-							hash = textureHash;
-							pkgID.clear();
-							getFile();
-							memcpy((char*)&textureFormat, data + 0x4, 2);
-							memcpy((char*)&width, data + 0x22, 2);
-							memcpy((char*)&height, data + 0x24, 2);
-							memcpy((char*)&arraySize, data + 0x28, 2);
-							memcpy((char*)&hash32, data + 60, 4);
-							largeHash = uint32ToHexStr(hash32);
-							delete[] data;
-							std::string finalHash = "";
-							if (largeHash != "ffffffff" && largeHash != "" && largeHash.substr(6, 2) == "80")
-								finalHash = largeHash;
-							else
-								finalHash = getReferenceFromHash(textureHash, packagesPath);
-							hash = finalHash;
-							pkgID.clear();
-							fileSize = getFile();
+						if (textureHash == "ffffffff")
+							continue;
+						hash = textureHash;
+						pkgID.clear();
+						getFile();
+						memcpy((char*)&textureFormat, data + 0x4, 2);
+						memcpy((char*)&width, data + 0x22, 2);
+						memcpy((char*)&height, data + 0x24, 2);
+						memcpy((char*)&arraySize, data + 0x28, 2);
+						memcpy((char*)&hash32, data + 60, 4);
+						largeHash = uint32ToHexStr(hash32);
+						delete[] data;
+						std::string finalHash = "";
+						if (largeHash != "ffffffff" && largeHash != "" && largeHash.substr(6, 2) == "80")
+							finalHash = largeHash;
+						else
+							finalHash = getReferenceFromHash(textureHash, packagesPath);
+						hash = finalHash;
+						pkgID.clear();
+						fileSize = getFile();
 
-							fs::create_directories(outputPath + "/textures");
-							std::string fullSavePath = outputPath + "/textures/" + textureHash + ".DDS";
-							Texture* texture = new Texture();
-							texture->data = data;
-							texture->fileSize = fileSize;
-							texture->textureFormat = textureFormat;
-							texture->width = width;
-							texture->height = height;
-							texture->arraySize = arraySize;
-							texture->writeTexture(fullSavePath);
-
-							delete[] data;
-							free(texture);
-							//TGA/PNG/Other support
-
-							std::string dxgiFormat = DXGI_FORMAT[textureFormat];
-							std::string texconv = "texconv.exe \"" + fullSavePath + "\" -nologo -y -ft PNG -f " + dxgiFormat;
-							system(texconv.c_str());
-							fs::remove(fullSavePath);
-						}
+						fs::create_directories(outputPath + "/textures");
+						std::string fullSavePath = outputPath + "/textures/" + textureHash + ".DDS";
+						Texture* texture = new Texture();
+						texture->data = data;
+						texture->fileSize = fileSize;
+						texture->textureFormat = textureFormat;
+						texture->width = width;
+						texture->height = height;
+						texture->arraySize = arraySize;
+						texture->writeTexture(fullSavePath);
+						delete[] data;
+						free(texture);
+						
+						std::string dxgiFormat = DXGI_FORMAT[textureFormat];
+						std::string texconv = "texconv.exe \"" + fullSavePath + "\" -nologo -y -ft " + texType + " -f " + dxgiFormat;
+						system(texconv.c_str());
+						fs::remove(fullSavePath);
 					}
 					else if (val > 0x80800000U) {
 						std::string textureHash = h64Check;
@@ -527,19 +559,16 @@ int main(int argc, char* argv[])
 						texture->height = height;
 						texture->arraySize = arraySize;
 						texture->writeTexture(fullSavePath);
-
 						delete[] data;
 						free(texture);
-						//TGA/PNG/Other support
 
 						std::string dxgiFormat = DXGI_FORMAT[textureFormat];
-						std::string texconv = "texconv.exe \"" + fullSavePath + "\" -nologo -y -ft PNG -f " + dxgiFormat;
+						std::string texconv = "texconv.exe \"" + fullSavePath + "\" -nologo -y -ft " + texType + " -f " + dxgiFormat;
 						system(texconv.c_str());
 						fs::remove(fullSavePath);
 					}
 				}
 			}
-			fs::remove("expath_temp");
 		}
 
 		std::cout << modelHash + ".fbx extracted.\n";
@@ -709,7 +738,6 @@ int getFile()
 	return fileSize;
 }
 
-/*
 void addVertColSlots(Submesh* submesh) {
 	for (auto& w : submesh->vertNormW)
 	{
@@ -738,4 +766,3 @@ void addVertColSlots(Submesh* submesh) {
 		submesh->vertColSlots.push_back(vc);
 	}
 }
-*/

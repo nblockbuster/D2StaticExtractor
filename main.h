@@ -4,6 +4,7 @@
 #include "texture.h"
 #include "dxgiformat.h"
 #include <sarge.cpp>
+#include <regex>
 
 unsigned char* data = nullptr;
 std::string hash = "";

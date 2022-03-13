@@ -32,9 +32,6 @@ FbxMesh* FbxModel::createMesh(Submesh* submesh) {
 	else {
 		for (auto& face : submesh->faces)
 		{
-			if (face[0] == 0x7FFF && face[1] == 0x7FFF && face[2] == 0x7FFF) {
-				
-			}
 			mesh->BeginPolygon();
 			mesh->AddPolygon(face[0]);
 			mesh->AddPolygon(face[1]);
