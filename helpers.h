@@ -57,9 +57,9 @@ public:
 	std::vector<std::vector<float>> vertNorm;
 	std::vector<std::vector<float>> vertUV;
 	std::vector<std::vector<float>> vertCol;
-	std::vector<std::vector<int16_t>> faces;
-	std::vector<std::vector<uint32_t>> facesu32;
-	std::vector<uint16_t> vertNormW;
+	std::vector<std::vector<uint32_t>> faces;
+	std::vector<int16_t> vertNormW;
+	std::vector<int16_t> vertPosW;
 	std::vector<std::vector<float>> vertColSlots;
 	int lodLevel;
 	std::string name;
@@ -68,6 +68,8 @@ public:
 	std::vector<LODSplit> lodsplit;
 	std::vector<float> scales;
 	std::vector<float> offset;
+	std::unordered_map<int, int> faceMap;
+	bool lodCulling;
 };
 
 class File
@@ -92,3 +94,4 @@ private:
 public:
 	Header(std::string x, std::string pkgsPath) : File(x, pkgsPath) {}
 };
+
