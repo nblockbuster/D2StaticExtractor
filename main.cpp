@@ -487,7 +487,6 @@ int main(int argc, char* argv[])
 						if (textureHash == "ffffffff")
 							continue;
 						hash = textureHash;
-						pkgID.clear();
 						getFile();
 						memcpy((char*)&textureFormat, data + 0x4, 2);
 						memcpy((char*)&width, data + 0x22, 2);
@@ -502,7 +501,6 @@ int main(int argc, char* argv[])
 						else
 							finalHash = getReferenceFromHash(textureHash, packagesPath);
 						hash = finalHash;
-						pkgID.clear();
 						fileSize = getFile();
 
 						fs::create_directories(outputPath + "/textures");
@@ -526,7 +524,6 @@ int main(int argc, char* argv[])
 					else if (val > 0x80800000U) {
 						std::string textureHash = h64Check;
 						hash = textureHash;
-						pkgID.clear();
 						getFile();
 						memcpy((char*)&textureFormat, data + 0x4, 2);
 						memcpy((char*)&width, data + 0x22, 2);
@@ -541,7 +538,6 @@ int main(int argc, char* argv[])
 						else
 							finalHash = getReferenceFromHash(textureHash, packagesPath);
 						hash = finalHash;
-						pkgID.clear();
 						fileSize = getFile();
 
 						fs::create_directories(outputPath + "/textures");
