@@ -2,9 +2,9 @@
 #include "helpers.h"
 #include "fbxmodel.h"
 #include "texture.h"
+#include "parsers.h"
 #include "dxgiformat.h"
 #include <sarge.cpp>
-#include <regex>
 
 unsigned char* data = nullptr;
 std::string hash = "";
@@ -20,3 +20,6 @@ void addVertColSlots(Submesh* submesh);
 
 std::vector<LODSplit> IndexLODSplits;
 std::vector<Submesh*> submeshes;
+
+void transformUV();
+void transformPos(float scale);

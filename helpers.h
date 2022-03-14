@@ -66,6 +66,8 @@ public:
 	bool isU32;
 	int type;
 	std::vector<LODSplit> lodsplit;
+	std::vector<float> scales;
+	std::vector<float> offset;
 };
 
 class File

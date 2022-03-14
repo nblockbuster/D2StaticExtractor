@@ -135,7 +135,7 @@ void parseVertexNormalsInMemory(int fileSize) {
 	}
 }
 
-void parseUVBufferInMemory(int fileSize, float uoff, float voff, float uscale, float vscale)
+void parseUVBufferInMemory(int fileSize, float uscale, float vscale, float uoff, float voff)
 {
 	int16_t u, v;
 	for (int i = 0; i < fileSize; i += 0x4) {
@@ -147,8 +147,8 @@ void parseUVBufferInMemory(int fileSize, float uoff, float voff, float uscale, f
 		//how did i have this backwards??
 		//eh who cares
 		//OFF IS SCALE AND SCALE IS OFF NOW
-		float fixu = ((float)u / 32767) * uoff + uscale;// *0.08;
-		float fixv = ((float)v / 32767) * -voff + vscale;// *0.08;
+		float fixu = ((float)u / 32767) * uscale + uoff;
+		float fixv = ((float)v / 32767) * -vscale + voff;
 		//float fixu = ((float)u / 32767) * uscale + uoff;// *0.08;
 		//float fixv = ((float)v / 32767) * -vscale + voff;// *0.08;
 		uvert.push_back(fixu);
@@ -265,7 +265,9 @@ int main(int argc, char* argv[])
 		hash = modelHash;
 		fileSize = getFile();
 		memcpy((char*)&sfhash32, data + 0x8, 4);
-		memcpy((void*)&scale, data + 0x3C, 4);
+		memcpy((char*)&scale, data + 0x3C, 4);
+		if (scale == 0.000000)
+			scale = 1;
 		uint32_t extOff = 0;
 		hash = uint32ToHexStr(sfhash32);
 		fileSize = getFile();
@@ -275,11 +277,19 @@ int main(int argc, char* argv[])
 		memcpy((char*)&uvBuffer, data + fileSize - 0xC, 4);
 		memcpy((char*)&vcBuffer, data + fileSize - 0x8, 4);
 		float uoff, voff, uscale, vscale;
-		memcpy((void*)&uoff, data + 0x48, 4);
-		memcpy((void*)&voff, data + 0x4C, 4);
-		memcpy((void*)&uscale, data + 0x54, 4);
-		memcpy((void*)&vscale, data + 0x58, 4);
-
+		memcpy((char*)&uscale, data + 0x48, 4);
+		memcpy((char*)&vscale, data + 0x4C, 4);
+		memcpy((char*)&uoff, data + 0x54, 4);
+		memcpy((char*)&voff, data + 0x58, 4);
+		submesh->scales.push_back(uscale);
+		submesh->scales.push_back(vscale);
+		submesh->offset.push_back(uoff);
+		submesh->offset.push_back(voff);
+		//submesh->scales[0] = uscale;
+		//submesh->scales[1] = vscale;
+		//submesh->offset[0] = uoff;
+		//submesh->offset[1] = voff;
+		
 		//This is very experimental and doesn't work yet.
 		/*
 		uint32_t val, amountLOD;
@@ -334,31 +344,34 @@ int main(int argc, char* argv[])
 
 		delete[] data;
 		hash = getReferenceFromHash(uint32ToHexStr(vertexBuffer), packagesPath);
-		fileSize = getFile();
-		if (scale == 0.000000)
-			scale = 1;
-		parseVertexBufferInMemory(fileSize, scale);
-		parseVertexNormalsInMemory(fileSize);
-		delete[] data;
+		VertexBuffer* vertBuf = new VertexBuffer(hash, packagesPath, submesh);
+		vertBuf->parseVertPos();
+		transformPos(scale);
+		//fileSize = getFile();
+		//parseVertexBufferInMemory(fileSize, scale);
+		//parseVertexNormalsInMemory(fileSize);
+		//delete[] data;
 		if (uvBuffer != 0xFFFFFFFF) {
 			hash = getReferenceFromHash(uint32ToHexStr(uvBuffer), packagesPath);
-			fileSize = getFile();
-			parseUVBufferInMemory(fileSize, uoff, voff, uscale, vscale);
-			delete[] data;
+			VertexBuffer* vertUVBuf = new VertexBuffer(hash, packagesPath, submesh);
+			vertUVBuf->parseVertUV();
+			//fileSize = getFile();
+			//parseUVBufferInMemory(fileSize, ucale, vscale, uoff, voff);
+			//delete[] data;
 		}
-		if (vcBuffer != 0xFFFFFFFF){
-			hash = getReferenceFromHash(uint32ToHexStr(vcBuffer), packagesPath);
-			fileSize = getFile();
-			parseVCBufferInMemory(fileSize);
-			delete[] data;
-			addVertColSlots(submesh);
-		}
+		//if (vcBuffer != 0xFFFFFFFF){
+		//	hash = getReferenceFromHash(uint32ToHexStr(vcBuffer), packagesPath);
+		//	fileSize = getFile();
+		//	parseVCBufferInMemory(fileSize);
+		//	delete[] data;
+		//	addVertColSlots(submesh);
+		//}
 
 		//uhhh this might work idk
 		hash = uint32ToHexStr(indexBuffer);
 		bool isu32 = false;
 		getFile();
-		memcpy((char*)&isu32, data + 1, 1);
+		memcpy((char*)&isu32, data + 0x1, 1);
 		submesh->isU32 = isu32;
 
 		delete[] data;
@@ -387,14 +400,6 @@ int main(int argc, char* argv[])
 			for (auto& node : nodes) fbxModel->scene->GetRootNode()->AddChild(node);
 			fbxModel->save(fbxpath, false);
 		}
-
-
-		submesh->faces.clear();
-		submesh->facesu32.clear();
-		submesh->vertPos.clear();
-		submesh->vertUV.clear();
-		submesh->vertNorm.clear();
-		submesh->vertNormW.clear();
 
 		//parse MATERIALS ?
 		if (sarge.exists("texex")) {
@@ -425,20 +430,9 @@ int main(int argc, char* argv[])
 			}
 			hash = modelHash;
 			fileSize = getFile();
-			uint32_t val;
-			bool bFound = false;
-			extOff = fileSize -= 4;
-			while (true)
-			{
-				memcpy((char*)&val, data + extOff, 4);
-				if (val == 0x80800014)
-				{
-					bFound = true;
-					extOff -= 8;
-					break;
-				}
-				extOff -= 4;
-			}
+			uint32_t extOff, val;
+			memcpy((char*)&extOff, data + 0x18, 4);
+			extOff += 0x18;
 			std::vector<Material*> externalMaterials;
 			uint32_t extCount;
 			memcpy((char*)&extCount, data + extOff, 4);
@@ -462,6 +456,9 @@ int main(int argc, char* argv[])
 			}
 		}
 
+		free(submesh);
+		fbxModel->manager->Destroy();
+
 		std::cout << modelHash + ".fbx extracted.\n";
 	}
 
@@ -476,6 +473,7 @@ int main(int argc, char* argv[])
 		{
 			if (modelhash == "")
 				break;
+			submesh->name = modelhash;
 			int fileSize = 0;
 			hash.clear();
 			pkgID.clear();
@@ -500,7 +498,8 @@ int main(int argc, char* argv[])
 			memcpy((void*)&uscale, data + 0x54, 4);
 			memcpy((void*)&vscale, data + 0x58, 4);
 			//This is very experimental and doesn't work yet.
-		/*
+
+			/*
 		uint32_t val, amountLOD;
 		bool bFound = false;
 		extOff = fileSize -= 4;
@@ -570,7 +569,7 @@ int main(int argc, char* argv[])
 			hash = uint32ToHexStr(indexBuffer);
 			bool isu32 = false;
 			getFile();
-			memcpy((char*)&isu32, data + 1, 1);
+			memcpy((char*)&isu32, data + 0x1, 1);
 			submesh->isU32 = isu32;
 
 			delete[] data;
@@ -655,4 +654,24 @@ int getFile()
 	data = pkg.getEntryData(hash, fileSize);
 	if (data == nullptr || sizeof(data) == 0) return 0;
 	return fileSize;
+}
+
+void transformUV()
+{
+	for (auto& vert : submesh->vertUV)
+	{
+		vert[0] = vert[0] * submesh->scales[0] + submesh->offset[0];
+		vert[1] = vert[1] * -submesh->scales[1] + (1 - submesh->offset[1]);
+	}
+}
+
+void transformPos(float scale)
+{
+	for (auto& vert : submesh->vertPos)
+	{
+		for (int i = 0; i < 3; i++)
+		{
+			vert[i] = vert[i] * scale;
+		}
+	}
 }
