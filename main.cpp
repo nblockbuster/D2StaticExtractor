@@ -580,15 +580,14 @@ int main(int argc, char* argv[])
 		{
 			if (modelhash == "")
 				break;
+			submesh->name = modelhash;
 			int fileSize = 0;
 			hash.clear();
-			pkgID.clear();
 			hash = modelhash;
 			getFile();
 			memcpy((char*)&sfhash32, data + 0x8, 4);
 			memcpy((void*)&scale, data + 0x3C, 4);
 			hash.clear();
-			pkgID.clear();
 			hash = uint32ToHexStr(sfhash32);
 			fileSize = getFile();
 			uint32_t indexBuffer, vertexBuffer, uvBuffer, vcBuffer;
@@ -724,8 +723,7 @@ int main(int argc, char* argv[])
 
 int getFile()
 {
-	if (pkgID == "")
-		pkgID = getPkgID(hash);
+	pkgID = getPkgID(hash);
 	Package pkg(pkgID, packagesPath);
 	int fileSize;
 	data = pkg.getEntryData(hash, fileSize);
