@@ -145,3 +145,22 @@ std::string to_str(double a_value)
 	out << std::fixed << std::setprecision(6) << a;
 	return out.str();
 }
+
+File::File(std::string x, std::string pkgsPath)
+{
+	hash = x;
+	packagesPath = pkgsPath;
+}
+
+int File::getData()
+{
+	if (hash.substr(hash.length() - 2) != "80" || hash.substr(hash.length() - 4) == "8080") return 0;
+
+	if (pkgID == "")
+		pkgID = getPkgID(hash);
+	Package pkg(pkgID, packagesPath);
+	int fileSize;
+	data = pkg.getEntryData(hash, fileSize);
+	if (data == nullptr || sizeof(data) == 0) return 0;
+	return fileSize;
+}

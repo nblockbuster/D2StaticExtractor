@@ -67,3 +67,26 @@ public:
 	int type;
 	std::vector<LODSplit> lodsplit;
 };
+
+class File
+{
+private:
+
+public:
+	File(std::string x, std::string pkgsPath);
+
+	std::string hash = "";
+	unsigned char* data = nullptr;
+	std::string pkgID = "";
+	std::string packagesPath;
+
+	int getData();
+};
+
+class Header : public File
+{
+private:
+
+public:
+	Header(std::string x, std::string pkgsPath) : File(x, pkgsPath) {}
+};
