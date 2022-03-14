@@ -66,4 +66,29 @@ public:
 	bool isU32;
 	int type;
 	std::vector<LODSplit> lodsplit;
+	std::vector<float> scales;
+	std::vector<float> offset;
+};
+
+class File
+{
+private:
+
+public:
+	File(std::string x, std::string pkgsPath);
+
+	std::string hash = "";
+	unsigned char* data = nullptr;
+	std::string pkgID = "";
+	std::string packagesPath;
+
+	int getData();
+};
+
+class Header : public File
+{
+private:
+
+public:
+	Header(std::string x, std::string pkgsPath) : File(x, pkgsPath) {}
 };

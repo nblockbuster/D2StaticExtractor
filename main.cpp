@@ -135,7 +135,7 @@ void parseVertexNormalsInMemory(int fileSize) {
 	}
 }
 
-void parseUVBufferInMemory(int fileSize, float uoff, float voff, float uscale, float vscale)
+void parseUVBufferInMemory(int fileSize, float uscale, float vscale, float uoff, float voff)
 {
 	int16_t u, v;
 	for (int i = 0; i < fileSize; i += 0x4) {
@@ -147,8 +147,8 @@ void parseUVBufferInMemory(int fileSize, float uoff, float voff, float uscale, f
 		//how did i have this backwards??
 		//eh who cares
 		//OFF IS SCALE AND SCALE IS OFF NOW
-		float fixu = ((float)u / 32767) * uoff + uscale;// *0.08;
-		float fixv = ((float)v / 32767) * -voff + vscale;// *0.08;
+		float fixu = ((float)u / 32767) * uscale + uoff;
+		float fixv = ((float)v / 32767) * -vscale + voff;
 		//float fixu = ((float)u / 32767) * uscale + uoff;// *0.08;
 		//float fixv = ((float)v / 32767) * -vscale + voff;// *0.08;
 		uvert.push_back(fixu);
@@ -265,7 +265,9 @@ int main(int argc, char* argv[])
 		hash = modelHash;
 		fileSize = getFile();
 		memcpy((char*)&sfhash32, data + 0x8, 4);
-		memcpy((void*)&scale, data + 0x3C, 4);
+		memcpy((char*)&scale, data + 0x3C, 4);
+		if (scale == 0.000000)
+			scale = 1;
 		uint32_t extOff = 0;
 		hash = uint32ToHexStr(sfhash32);
 		fileSize = getFile();
@@ -275,11 +277,19 @@ int main(int argc, char* argv[])
 		memcpy((char*)&uvBuffer, data + fileSize - 0xC, 4);
 		memcpy((char*)&vcBuffer, data + fileSize - 0x8, 4);
 		float uoff, voff, uscale, vscale;
-		memcpy((void*)&uoff, data + 0x48, 4);
-		memcpy((void*)&voff, data + 0x4C, 4);
-		memcpy((void*)&uscale, data + 0x54, 4);
-		memcpy((void*)&vscale, data + 0x58, 4);
-
+		memcpy((char*)&uscale, data + 0x48, 4);
+		memcpy((char*)&vscale, data + 0x4C, 4);
+		memcpy((char*)&uoff, data + 0x54, 4);
+		memcpy((char*)&voff, data + 0x58, 4);
+		submesh->scales.push_back(uscale);
+		submesh->scales.push_back(vscale);
+		submesh->offset.push_back(uoff);
+		submesh->offset.push_back(voff);
+		//submesh->scales[0] = uscale;
+		//submesh->scales[1] = vscale;
+		//submesh->offset[0] = uoff;
+		//submesh->offset[1] = voff;
+		
 		//This is very experimental and doesn't work yet.
 		/*
 		uint32_t val, amountLOD;
@@ -334,24 +344,34 @@ int main(int argc, char* argv[])
 
 		delete[] data;
 		hash = getReferenceFromHash(uint32ToHexStr(vertexBuffer), packagesPath);
-		fileSize = getFile();
-		if (scale == 0.000000)
-			scale = 1;
-		parseVertexBufferInMemory(fileSize, scale);
+		VertexBuffer* vertBuf = new VertexBuffer(hash, packagesPath, submesh);
+		vertBuf->parseVertPos();
+		transformPos(scale);
+		//fileSize = getFile();
+		//parseVertexBufferInMemory(fileSize, scale);
 		//parseVertexNormalsInMemory(fileSize);
-		delete[] data;
-		if (getReferenceFromHash(uint32ToHexStr(uvBuffer), packagesPath) != "ffffffff") {
+		//delete[] data;
+		if (uvBuffer != 0xFFFFFFFF) {
 			hash = getReferenceFromHash(uint32ToHexStr(uvBuffer), packagesPath);
-			fileSize = getFile();
-			parseUVBufferInMemory(fileSize, uoff, voff, uscale, vscale);
-			delete[] data;
+			VertexBuffer* vertUVBuf = new VertexBuffer(hash, packagesPath, submesh);
+			vertUVBuf->parseVertUV();
+			//fileSize = getFile();
+			//parseUVBufferInMemory(fileSize, ucale, vscale, uoff, voff);
+			//delete[] data;
 		}
+		//if (vcBuffer != 0xFFFFFFFF){
+		//	hash = getReferenceFromHash(uint32ToHexStr(vcBuffer), packagesPath);
+		//	fileSize = getFile();
+		//	parseVCBufferInMemory(fileSize);
+		//	delete[] data;
+		//	addVertColSlots(submesh);
+		//}
 
 		//uhhh this might work idk
 		hash = uint32ToHexStr(indexBuffer);
 		bool isu32 = false;
 		getFile();
-		memcpy((char*)&isu32, data + 1, 1);
+		memcpy((char*)&isu32, data + 0x1, 1);
 		submesh->isU32 = isu32;
 
 		delete[] data;
@@ -359,15 +379,8 @@ int main(int argc, char* argv[])
 		fileSize = getFile();
 		parseIndexBufferInMemory(submesh->vertPos.size(), fileSize);
 		delete[] data;
-		/*
-		hash = getReferenceFromHash(uint32ToHexStr(vcBuffer), packagesPath);
-		if (hash != "ffffffff"){
-			fileSize = getFile();
-			parseVCBufferInMemory(fileSize);
-			delete[] data;
-			addVertColSlots(submesh);
-		}
-		*/
+		
+		
 		std::string fbxpath = outputPath + "/" + modelHash + ".fbx";
 		submesh->name = modelHash;
 		//submeshes.push_back(submesh);
@@ -388,47 +401,39 @@ int main(int argc, char* argv[])
 			fbxModel->save(fbxpath, false);
 		}
 
-
-		submesh->faces.clear();
-		submesh->facesu32.clear();
-		submesh->vertPos.clear();
-		submesh->vertUV.clear();
-		submesh->vertNorm.clear();
-		submesh->vertNormW.clear();
-
 		//parse MATERIALS ?
 		if (sarge.exists("texex")) {
+			std::string fullSavePath = outputPath + "/textures/";
+			fs::create_directories(fullSavePath);
 			std::string texType;
+			bool found = false;
 			std::vector<std::string> validTypes = { "png","jpg","jpeg","bmp","dds","tga","hdr","tif","tiff","wdp","hdp","jxr","ppm","pfm" };
-			if (texTypeIn == "")
-			{
-				texType == "PNG";
-			}
-			else
-			{
+			while (true) {
+				if (texTypeIn == "") {
+					texType = "PNG";
+					break;
+				}
 				for (const auto& type : validTypes)
 				{
-					if (boost::iequals(texTypeIn, type))
+					if (boost::iequals(texTypeIn, type)) {
+						found = true;
 						texType = boost::to_upper_copy(type);
+						break;
+					}
+				}
+				if (found)
+					break;
+				else {
+					texType = "PNG";
+					break;
 				}
 			}
 			hash = modelHash;
 			fileSize = getFile();
-			uint32_t val;
-			bool bFound = false;
-			extOff = fileSize -= 4;
-			while (true)
-			{
-				memcpy((char*)&val, data + extOff, 4);
-				if (val == 0x80800014)
-				{
-					bFound = true;
-					extOff -= 8;
-					break;
-				}
-				extOff -= 4;
-			}
-			std::vector<std::string> externalMaterials;
+			uint32_t extOff, val;
+			memcpy((char*)&extOff, data + 0x18, 4);
+			extOff += 0x18;
+			std::vector<Material*> externalMaterials;
 			uint32_t extCount;
 			memcpy((char*)&extCount, data + extOff, 4);
 			extOff += 0x10;
@@ -438,133 +443,21 @@ int main(int argc, char* argv[])
 				memcpy((char*)&val, data + j, 4);
 				if (existingMats.find(val) == existingMats.end())
 				{
-					externalMaterials.push_back(uint32ToHexStr(val));
+					Material* mat = new Material(uint32ToHexStr(val), packagesPath);
+					externalMaterials.push_back(mat);
 					existingMats.insert(val);
 				}
 			}
-			for (auto exHash : externalMaterials) {
-				unsigned char* matdata = nullptr;
-				int matFileSize;
-				Package matpkg(getPkgID(exHash), packagesPath);
-				matdata = matpkg.getEntryData(exHash, matFileSize);
-				uint32_t textureCount;
-				uint32_t textureOffset;
-				memcpy((char*)&textureCount, matdata + 0x2B8, 4);
-				if (textureCount == 0) continue;
-				//memcpy((char*)&textureOffset, matdata + 0x308, 4);
-				//textureOffset += 488 + 0x10;			
-				extOff = matFileSize - 16;
-				bFound = false;
-				while (true)
-				{
-					memcpy((char*)&val, matdata + extOff, 4);
-					if (val == 0x80806DCF)
-					{
-						bFound = true;
-						extOff += 8;
-						textureOffset = extOff;
-						break;
-					}
-					extOff -= 4;
-				}
-				if (!bFound)
-					continue;
-				uint64_t h64Val;
-				for (int v = textureOffset; v < textureOffset + textureCount * 0x18; v += 0x18) {
-					std::cout << std::to_string(v) << "\n";
-					uint8_t textureIndex;
-					memcpy((char*)&textureIndex, matdata + v, 1);
-					memcpy((char*)&val, matdata + v + 8, 4);
-					std::string h64Check = uint32ToHexStr(val);
-					std::string largeHash;
-					uint16_t textureFormat;
-					uint16_t width, height, arraySize;
-					uint32_t hash32;
-					if (h64Check == "ffffffff") {
-						memcpy((char*)&h64Val, matdata + v + 0x10, 8);
-						if (h64Val == 0) continue;
-						std::string textureHash = getHash64(h64Val, hash64Table);
-						if (textureHash == "ffffffff")
-							continue;
-						hash = textureHash;
-						pkgID.clear();
-						getFile();
-						memcpy((char*)&textureFormat, data + 0x4, 2);
-						memcpy((char*)&width, data + 0x22, 2);
-						memcpy((char*)&height, data + 0x24, 2);
-						memcpy((char*)&arraySize, data + 0x28, 2);
-						memcpy((char*)&hash32, data + 60, 4);
-						largeHash = uint32ToHexStr(hash32);
-						delete[] data;
-						std::string finalHash = "";
-						if (largeHash != "ffffffff" && largeHash != "" && largeHash.substr(6, 2) == "80")
-							finalHash = largeHash;
-						else
-							finalHash = getReferenceFromHash(textureHash, packagesPath);
-						hash = finalHash;
-						pkgID.clear();
-						fileSize = getFile();
-
-						fs::create_directories(outputPath + "/textures");
-						std::string fullSavePath = outputPath + "/textures/" + textureHash + ".DDS";
-						Texture* texture = new Texture();
-						texture->data = data;
-						texture->fileSize = fileSize;
-						texture->textureFormat = textureFormat;
-						texture->width = width;
-						texture->height = height;
-						texture->arraySize = arraySize;
-						texture->writeTexture(fullSavePath);
-						delete[] data;
-						free(texture);
-						
-						std::string dxgiFormat = DXGI_FORMAT[textureFormat];
-						std::string texconv = "texconv.exe \"" + fullSavePath + "\" -nologo -y -ft " + texType + " -f " + dxgiFormat;
-						system(texconv.c_str());
-						fs::remove(fullSavePath);
-					}
-					else if (val > 0x80800000U) {
-						std::string textureHash = h64Check;
-						hash = textureHash;
-						pkgID.clear();
-						getFile();
-						memcpy((char*)&textureFormat, data + 0x4, 2);
-						memcpy((char*)&width, data + 0x22, 2);
-						memcpy((char*)&height, data + 0x24, 2);
-						memcpy((char*)&arraySize, data + 0x28, 2);
-						memcpy((char*)&hash32, data + 60, 4);
-						largeHash = uint32ToHexStr(hash32);
-						delete[] data;
-						std::string finalHash = "";
-						if (largeHash != "ffffffff" && largeHash != "" && largeHash.substr(6, 2) == "80")
-							finalHash = largeHash;
-						else
-							finalHash = getReferenceFromHash(textureHash, packagesPath);
-						hash = finalHash;
-						pkgID.clear();
-						fileSize = getFile();
-
-						fs::create_directories(outputPath + "/textures");
-						std::string fullSavePath = outputPath + "/textures/" + textureHash + ".DDS";
-						Texture* texture = new Texture();
-						texture->data = data;
-						texture->fileSize = fileSize;
-						texture->textureFormat = textureFormat;
-						texture->width = width;
-						texture->height = height;
-						texture->arraySize = arraySize;
-						texture->writeTexture(fullSavePath);
-						delete[] data;
-						free(texture);
-
-						std::string dxgiFormat = DXGI_FORMAT[textureFormat];
-						std::string texconv = "texconv.exe \"" + fullSavePath + "\" -nologo -y -ft " + texType + " -f " + dxgiFormat;
-						system(texconv.c_str());
-						fs::remove(fullSavePath);
-					}
-				}
+			for (auto mat : externalMaterials)
+			{
+				
+				mat->parseMaterial(hash64Table);
+				mat->exportTextures(fullSavePath, texType);
 			}
 		}
+
+		free(submesh);
+		fbxModel->manager->Destroy();
 
 		std::cout << modelHash + ".fbx extracted.\n";
 	}
@@ -580,6 +473,7 @@ int main(int argc, char* argv[])
 		{
 			if (modelhash == "")
 				break;
+			submesh->name = modelhash;
 			int fileSize = 0;
 			hash.clear();
 			pkgID.clear();
@@ -604,7 +498,8 @@ int main(int argc, char* argv[])
 			memcpy((void*)&uscale, data + 0x54, 4);
 			memcpy((void*)&vscale, data + 0x58, 4);
 			//This is very experimental and doesn't work yet.
-		/*
+
+			/*
 		uint32_t val, amountLOD;
 		bool bFound = false;
 		extOff = fileSize -= 4;
@@ -674,7 +569,7 @@ int main(int argc, char* argv[])
 			hash = uint32ToHexStr(indexBuffer);
 			bool isu32 = false;
 			getFile();
-			memcpy((char*)&isu32, data + 1, 1);
+			memcpy((char*)&isu32, data + 0x1, 1);
 			submesh->isU32 = isu32;
 
 			delete[] data;
@@ -722,18 +617,7 @@ int main(int argc, char* argv[])
 
 }
 
-int getFile()
-{
-	if (pkgID == "")
-		pkgID = getPkgID(hash);
-	Package pkg(pkgID, packagesPath);
-	int fileSize;
-	data = pkg.getEntryData(hash, fileSize);
-	if (data == nullptr || sizeof(data) == 0) return 0;
-	return fileSize;
-}
-
-void addVertColSlots(Submesh* submesh) {
+void addVertColSlots(Submesh* submesh){
 	for (auto& w : submesh->vertNormW)
 	{
 		std::vector<float> vc = { 0., 0., 0., 1. };
@@ -759,5 +643,35 @@ void addVertColSlots(Submesh* submesh) {
 			break;
 		}
 		submesh->vertColSlots.push_back(vc);
+	}
+}
+
+int getFile()
+{
+	pkgID = getPkgID(hash);
+	Package pkg(pkgID, packagesPath);
+	int fileSize;
+	data = pkg.getEntryData(hash, fileSize);
+	if (data == nullptr || sizeof(data) == 0) return 0;
+	return fileSize;
+}
+
+void transformUV()
+{
+	for (auto& vert : submesh->vertUV)
+	{
+		vert[0] = vert[0] * submesh->scales[0] + submesh->offset[0];
+		vert[1] = vert[1] * -submesh->scales[1] + (1 - submesh->offset[1]);
+	}
+}
+
+void transformPos(float scale)
+{
+	for (auto& vert : submesh->vertPos)
+	{
+		for (int i = 0; i < 3; i++)
+		{
+			vert[i] = vert[i] * scale;
+		}
 	}
 }
