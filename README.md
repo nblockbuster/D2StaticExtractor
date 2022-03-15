@@ -19,7 +19,6 @@ Far-off goals:
 
 
 There is no risk of a ban by using this tool.  
-If you (for some reason) use DSE in your projects, it would be appreciated if you credited me and/or 42 
 
 ## Usage
 
