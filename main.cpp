@@ -137,6 +137,7 @@ int main(int argc, char* argv[])
 		submesh->offset.push_back(voff);
 		//This is very experimental and doesn't work yet.
 
+		/*
 		uint32_t val, amountLOD;
 		bool bFound = false;
 		extOff = fileSize -= 4;
@@ -185,7 +186,7 @@ int main(int argc, char* argv[])
 				submesh->lodsplit.push_back(split);
 			j += 1;	
 		}
-
+		*/
 
 		delete[] data;
 
