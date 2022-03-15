@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
 		fileSize = getFile();
 		uint32_t val;
 		memcpy((char*)&val, data + fileSize - 0x14, 4);
-		if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length(), 2) != "80")
+		if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length()-2, 2) != "80")
 		{
 			std::cerr << "Mesh has no valid data linked.\n";
 			exit(2820);
@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
 		indexBufHeader->indexBuffer->getFaces(submesh);
 
 		memcpy((char*)&val, data + fileSize - 0x10, 4);
-		if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length(), 2) != "80")
+		if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length()-2, 2) != "80")
 		{
 			std::cerr << "Mesh has no valid data linked.\n";
 			exit(2820);
@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
 		submesh->offset.push_back(uoff);
 		submesh->offset.push_back(voff);
 		//This is very experimental and doesn't work yet.
-		/*
+
 		uint32_t val, amountLOD;
 		bool bFound = false;
 		extOff = fileSize -= 4;
@@ -185,7 +185,7 @@ int main(int argc, char* argv[])
 				submesh->lodsplit.push_back(split);
 			j += 1;	
 		}
-		*/
+
 
 		delete[] data;
 
@@ -261,6 +261,7 @@ int main(int argc, char* argv[])
 
 		std::cout << modelHash + ".fbx extracted.\n";
 	}
+
 	else if (batchPkg != "") {
 		Package pkg(batchPkg, packagesPath);
 		std::vector<std::string> hashes = pkg.getAllFilesGivenRef("446d8080");
@@ -286,13 +287,13 @@ int main(int argc, char* argv[])
 			fileSize = getFile();
 			uint32_t val;
 			memcpy((char*)&val, data + fileSize - 0x14, 4);
-			if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length(), 2) != "80") break;
+			if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length()-2, 2) != "80") break;
 
 			IndexBufferHeader* indexBufHeader = new IndexBufferHeader(uint32ToHexStr(val), packagesPath);
 			indexBufHeader->indexBuffer->getFaces(submesh);
 
 			memcpy((char*)&val, data + fileSize - 0x10, 4);
-			if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length(), 2) != "80") break;
+			if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length()-2, 2) != "80") break;
 
 			VertexBuffer* vertBuf = new VertexBuffer(getReferenceFromHash(uint32ToHexStr(val), packagesPath), packagesPath, submesh);
 			vertBuf->parseVertPos();
@@ -326,12 +327,12 @@ int main(int argc, char* argv[])
 
 			transformUV();
 
-			submesh->name = modelHash;
+			submesh->name = modelhash;
 			FbxNode* node = fbxModel->addSubmeshToFbx(submesh);
 			nodes.push_back(node);
 			if (nodes.size()) {
 				for (auto& node : nodes) fbxModel->scene->GetRootNode()->AddChild(node);
-				std::string fbxpath = outputPath + "/" + modelHash + ".fbx";
+				std::string fbxpath = outputPath + "/" + modelhash + ".fbx";
 				fbxModel->save(fbxpath, false);
 			}
 
