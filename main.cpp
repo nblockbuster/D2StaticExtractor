@@ -92,9 +92,9 @@ int main(int argc, char* argv[])
 		fileSize = getFile();
 		uint32_t val;
 		memcpy((char*)&val, data + fileSize - 0x14, 4);
-		if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length(), 2) != "80")
+		if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length()-2, 2) != "80")
 		{
-			std::cerr << "Mesh has no valid data linked.\n";
+			std::cerr << "Mesh has no valid data attached.\n";
 			exit(2820);
 		}
 
@@ -102,9 +102,9 @@ int main(int argc, char* argv[])
 		indexBufHeader->indexBuffer->getFaces(submesh);
 
 		memcpy((char*)&val, data + fileSize - 0x10, 4);
-		if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length(), 2) != "80")
+		if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length()-2, 2) != "80")
 		{
-			std::cerr << "Mesh has no valid data linked.\n";
+			std::cerr << "Mesh has no valid data attached.\n";
 			exit(2820);
 		}
 
@@ -136,8 +136,8 @@ int main(int argc, char* argv[])
 		submesh->offset.push_back(uoff);
 		submesh->offset.push_back(voff);
 		//This is very experimental and doesn't work yet.
-		/*
-		uint32_t val, amountLOD;
+
+		uint32_t amountLOD;
 		bool bFound = false;
 		extOff = fileSize -= 4;
 		while (true)
@@ -165,36 +165,63 @@ int main(int argc, char* argv[])
 			std::cout << "CO: " + std::to_string(split.off) + " CC: " + std::to_string(split.count)
 				<< "\nNO: " + std::to_string(splitnext_off) + " NC: " + std::to_string(splitnext_count) << "\n";
 			if (j > 0 && submesh->lodsplit.size()) {
-				//if (split.off != (submesh->lodsplit[j - 1].off + submesh->lodsplit[j - 1].count))
-				//if (split.off == submesh->lodsplit[j - 1].off && split.count >)
-				//	std::cout << "invalid LOD. SKIIIIIP\n";
-				//else
-				//	submesh->lodsplit.push_back(split);
 				if (split.off == splitnext_off && split.count < splitnext_count) {
 					std::cout << "\ninvalid LOD or not LOD0. SKIIIIIP\n\n";
-					//o += 12;
 				}
 				else
 					submesh->lodsplit.push_back(split);
 			}
 			else if (split.off == splitnext_off && split.count < splitnext_count) {
 				std::cout << "\ninvalid LOD or not LOD0. SKIIIIIP\n\n";
-				//o += 12;
 			}
 			else
 				submesh->lodsplit.push_back(split);
 			j += 1;	
 		}
-		*/
 
 		delete[] data;
 
 		transformPos(scale);
 		transformUV();
 		
-		submesh->name = modelHash;
-		FbxNode* node = fbxModel->addSubmeshToFbx(submesh);
-		nodes.push_back(node);
+
+		if (lodCulling)
+		{
+			int o = 0;
+			Submesh* newsub = new Submesh();
+			//newsub->vertPos = submesh->vertPos;
+			newsub->vertUV = submesh->vertUV;
+			newsub->vertNorm = submesh->vertNorm;
+			newsub->vertCol = submesh->vertCol;
+			newsub->vertColSlots = submesh->vertColSlots;
+
+			for (int i = 0; i < submesh->faces.size(); i++)
+			{
+				if (i * 3 == (submesh->lodsplit[o].off + submesh->lodsplit[o].count))
+				{
+					std::cout << "culled @ + " + std::to_string(i * 3) + "?\n";
+					std::cout << "newsub faces size: " + std::to_string(newsub->faces.size()) << "\n";
+					submeshes.push_back(newsub);
+					break;
+				}
+				else
+				{
+					std::cout << std::to_string(i*3) + " != " + std::to_string(submesh->lodsplit[o].off + submesh->lodsplit[o].count) << "\n";
+					newsub->faces.push_back(submesh->faces[i]);
+				}
+			}
+
+			//submesh->faces.erase(submesh->faces.begin(), submesh->faces.begin() + (submesh->lodsplit[o].off + submesh->lodsplit[o].count));
+			//submeshes.push_back(submesh);
+		}
+		else
+			submeshes.push_back(submesh);
+		for (int p = 0; p < submeshes.size(); p++)
+		{
+			submeshes[p]->name = modelHash + "_" + std::to_string(p);
+			FbxNode* node = fbxModel->addSubmeshToFbx(submeshes[p]);
+			nodes.push_back(node);
+		}
 		if (nodes.size()) {
 			for (auto& node : nodes) fbxModel->scene->GetRootNode()->AddChild(node);
 			std::string fbxpath = outputPath + "/" + modelHash + ".fbx";
@@ -322,13 +349,96 @@ int main(int argc, char* argv[])
 			submesh->offset.push_back(uoff);
 			submesh->offset.push_back(voff);
 
-			delete[] data;
-
+			transformPos(scale);
 			transformUV();
 
-			submesh->name = modelHash;
-			FbxNode* node = fbxModel->addSubmeshToFbx(submesh);
-			nodes.push_back(node);
+			//VERY EXPERIMENTAL
+			//could just break
+			//idk
+
+			uint32_t amountLOD;
+			bool bFound = false;
+			extOff = fileSize -= 4;
+			while (true)
+			{
+				memcpy((char*)&val, data + extOff, 4);
+				if (val == 0x80806D37)
+				{
+					bFound = true;
+					extOff -= 8;
+					break;
+				}
+				extOff -= 4;
+			}
+			memcpy((char*)&amountLOD, data + extOff, 4);
+			extOff += 0x10;
+			int j = 0;
+			uint32_t splitnext_off;
+			uint32_t splitnext_count;
+			for (int o = extOff; o < extOff + (amountLOD * 12); o += 12) {
+				LODSplit split;
+				memcpy((char*)&split.off, data + o, 4);
+				memcpy((char*)&split.count, data + o + 4, 4);
+				memcpy((char*)&splitnext_off, data + o + 12, 4);
+				memcpy((char*)&splitnext_count, data + o + 16, 4);
+				std::cout << "CO: " + std::to_string(split.off) + " CC: " + std::to_string(split.count)
+					<< "\nNO: " + std::to_string(splitnext_off) + " NC: " + std::to_string(splitnext_count) << "\n";
+				if (j > 0 && submesh->lodsplit.size()) {
+					if (split.off == splitnext_off && split.count < splitnext_count) {
+						std::cout << "\ninvalid LOD or not LOD0. SKIIIIIP\n\n";
+					}
+					else
+						submesh->lodsplit.push_back(split);
+				}
+				else if (split.off == splitnext_off && split.count < splitnext_count) {
+					std::cout << "\ninvalid LOD or not LOD0. SKIIIIIP\n\n";
+				}
+				else
+					submesh->lodsplit.push_back(split);
+				j += 1;
+			}
+
+			delete[] data;
+
+
+
+			if (lodCulling)
+			{
+				int o = 0;
+				Submesh* newsub = new Submesh();
+				//newsub->vertPos = submesh->vertPos;
+				newsub->vertUV = submesh->vertUV;
+				newsub->vertNorm = submesh->vertNorm;
+				newsub->vertCol = submesh->vertCol;
+				newsub->vertColSlots = submesh->vertColSlots;
+
+				for (int i = 0; i < submesh->faces.size(); i++)
+				{
+					if (i * 3 == (submesh->lodsplit[o].off + submesh->lodsplit[o].count))
+					{
+						std::cout << "culled @ + " + std::to_string(i * 3) + "?\n";
+						std::cout << "newsub faces size: " + std::to_string(newsub->faces.size()) << "\n";
+						submeshes.push_back(newsub);
+						break;
+					}
+					else
+					{
+						std::cout << std::to_string(i * 3) + " != " + std::to_string(submesh->lodsplit[o].off + submesh->lodsplit[o].count) << "\n";
+						newsub->faces.push_back(submesh->faces[i]);
+					}
+				}
+
+				//submesh->faces.erase(submesh->faces.begin(), submesh->faces.begin() + (submesh->lodsplit[o].off + submesh->lodsplit[o].count));
+				//submeshes.push_back(submesh);
+			}
+			else
+				submeshes.push_back(submesh);	
+			for (int p = 0; p < submeshes.size(); p++)
+			{
+				submeshes[p]->name = modelHash + "_" + std::to_string(p);
+				FbxNode* node = fbxModel->addSubmeshToFbx(submeshes[p]);
+				nodes.push_back(node);
+			}
 			if (nodes.size()) {
 				for (auto& node : nodes) fbxModel->scene->GetRootNode()->AddChild(node);
 				std::string fbxpath = outputPath + "/" + modelHash + ".fbx";
