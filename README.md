@@ -23,7 +23,6 @@ There is no risk of a ban by using this tool.
 ## Usage
 
 The tool requires Windows 64 bit and a Destiny 2 installation.  
-You also need to copy the "oo2core_9_win64.dll" from your Destiny 2 installation's bin/x64 folder.
 
 The tool is used via the command line:
 
