@@ -69,12 +69,12 @@ int main(int argc, char* argv[])
 			hash64Table = generateH64Table(pkgsPath);
 			saveH64Table(hash64Table);
 		}
-	}	
+	}
 #pragma endregion
 
 	if (modelHash != "") {
 		if (getReferenceFromHash(modelHash, packagesPath) != "446d8080") {
-			std::cout<<"Not a valid static model.\n";
+			std::cout << "Not a valid static model.\n";
 			exit(112);
 		}
 		outputPath += "/" + modelHash;
@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
 		fileSize = getFile();
 		uint32_t val;
 		memcpy((char*)&val, data + fileSize - 0x14, 4);
-		if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length()-2, 2) != "80")
+		if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80")
 		{
 			std::cerr << "Mesh has no valid data attached.\n";
 			exit(2820);
@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
 		indexBufHeader->indexBuffer->getFaces(submesh);
 
 		memcpy((char*)&val, data + fileSize - 0x10, 4);
-		if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length()-2, 2) != "80")
+		if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80")
 		{
 			std::cerr << "Mesh has no valid data attached.\n";
 			exit(2820);
@@ -135,58 +135,58 @@ int main(int argc, char* argv[])
 		submesh->scales.push_back(vscale);
 		submesh->offset.push_back(uoff);
 		submesh->offset.push_back(voff);
-		//This is very experimental and doesn't work yet.
+		transformPos(scale);
+		transformUV();
 
-		uint32_t amountLOD;
-		bool bFound = false;
-		extOff = fileSize -= 4;
-		while (true)
+		//This is very experimental and might not work well.
+		if (lodCulling)
 		{
-			memcpy((char*)&val, data + extOff, 4);
-			if (val == 0x80806D37)
+			uint32_t amountLOD;
+			bool bFound = false;
+			extOff = fileSize -= 4;
+			while (true)
 			{
-				bFound = true;
-				extOff -= 8;
-				break;
+				memcpy((char*)&val, data + extOff, 4);
+				if (val == 0x80806D37)
+				{
+					bFound = true;
+					extOff -= 8;
+					break;
+				}
+				extOff -= 4;
 			}
-			extOff -= 4;
-		}
-		memcpy((char*)&amountLOD, data + extOff, 4);
-		extOff += 0x10;
-		int j = 0;
-		uint32_t splitnext_off;
-		uint32_t splitnext_count;
-		for (int o = extOff; o < extOff + (amountLOD * 12); o += 12) {
-			LODSplit split;
-			memcpy((char*)&split.off, data + o, 4);
-			memcpy((char*)&split.count, data + o + 4, 4);
-			memcpy((char*)&splitnext_off, data + o + 12, 4);
-			memcpy((char*)&splitnext_count, data + o + 16, 4);
-			std::cout << "CO: " + std::to_string(split.off) + " CC: " + std::to_string(split.count)
-				<< "\nNO: " + std::to_string(splitnext_off) + " NC: " + std::to_string(splitnext_count) << "\n";
-			if (j > 0 && submesh->lodsplit.size()) {
-				if (split.off == splitnext_off && split.count < splitnext_count) {
+			memcpy((char*)&amountLOD, data + extOff, 4);
+			extOff += 0x10;
+			int j = 0;
+			uint32_t splitnext_off;
+			uint32_t splitnext_count;
+			for (int o = extOff; o < extOff + (amountLOD * 12); o += 12) {
+				LODSplit split;
+				memcpy((char*)&split.off, data + o, 4);
+				memcpy((char*)&split.count, data + o + 4, 4);
+				memcpy((char*)&splitnext_off, data + o + 12, 4);
+				memcpy((char*)&splitnext_count, data + o + 16, 4);
+				std::cout << "CO: " + std::to_string(split.off) + " CC: " + std::to_string(split.count)
+					<< "\nNO: " + std::to_string(splitnext_off) + " NC: " + std::to_string(splitnext_count) << "\n";
+				if (j > 0 && submesh->lodsplit.size()) {
+					if (split.off == splitnext_off && split.count < splitnext_count) {
+						std::cout << "\ninvalid LOD or not LOD0. SKIIIIIP\n\n";
+					}
+					else
+						submesh->lodsplit.push_back(split);
+				}
+				else if (split.off == splitnext_off && split.count < splitnext_count) {
 					std::cout << "\ninvalid LOD or not LOD0. SKIIIIIP\n\n";
 				}
 				else
 					submesh->lodsplit.push_back(split);
+				j += 1;
 			}
-			else if (split.off == splitnext_off && split.count < splitnext_count) {
-				std::cout << "\ninvalid LOD or not LOD0. SKIIIIIP\n\n";
-			}
-			else
-				submesh->lodsplit.push_back(split);
-			j += 1;	
-		}
 
-		delete[] data;
+			delete[] data;
 
-		transformPos(scale);
-		transformUV();
-		
 
-		if (lodCulling)
-		{
+
 			int o = 0;
 			Submesh* newsub = new Submesh();
 			//newsub->vertPos = submesh->vertPos;
@@ -206,7 +206,7 @@ int main(int argc, char* argv[])
 				}
 				else
 				{
-					std::cout << std::to_string(i*3) + " != " + std::to_string(submesh->lodsplit[o].off + submesh->lodsplit[o].count) << "\n";
+					std::cout << std::to_string(i * 3) + " != " + std::to_string(submesh->lodsplit[o].off + submesh->lodsplit[o].count) << "\n";
 					newsub->faces.push_back(submesh->faces[i]);
 				}
 			}
@@ -214,8 +214,10 @@ int main(int argc, char* argv[])
 			//submesh->faces.erase(submesh->faces.begin(), submesh->faces.begin() + (submesh->lodsplit[o].off + submesh->lodsplit[o].count));
 			//submeshes.push_back(submesh);
 		}
-		else
+		else {
+			delete[] data;
 			submeshes.push_back(submesh);
+		}
 		for (int p = 0; p < submeshes.size(); p++)
 		{
 			submeshes[p]->name = modelHash + "_" + std::to_string(p);
@@ -227,7 +229,7 @@ int main(int argc, char* argv[])
 			std::string fbxpath = outputPath + "/" + modelHash + ".fbx";
 			fbxModel->save(fbxpath, false);
 		}
-
+		
 		//parse MATERIALS ?
 		if (sarge.exists("texex")) {
 			std::string fullSavePath = outputPath + "/textures/";
@@ -277,7 +279,7 @@ int main(int argc, char* argv[])
 			}
 			for (auto mat : externalMaterials)
 			{
-				
+
 				mat->parseMaterial(hash64Table);
 				mat->exportTextures(fullSavePath, texType);
 			}
@@ -298,8 +300,7 @@ int main(int argc, char* argv[])
 		for (auto& modelhash : hashes)
 		{
 			if (modelhash == "")
-				break;
-			submesh->name = modelhash;
+				continue;
 			int fileSize;
 			hash = modelhash;
 			fileSize = getFile();
@@ -313,17 +314,16 @@ int main(int argc, char* argv[])
 			fileSize = getFile();
 			uint32_t val;
 			memcpy((char*)&val, data + fileSize - 0x14, 4);
-			if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length(), 2) != "80") break;
+			if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80") continue;
 
 			IndexBufferHeader* indexBufHeader = new IndexBufferHeader(uint32ToHexStr(val), packagesPath);
 			indexBufHeader->indexBuffer->getFaces(submesh);
 
 			memcpy((char*)&val, data + fileSize - 0x10, 4);
-			if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length(), 2) != "80") break;
+			if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80") continue;
 
 			VertexBuffer* vertBuf = new VertexBuffer(getReferenceFromHash(uint32ToHexStr(val), packagesPath), packagesPath, submesh);
 			vertBuf->parseVertPos();
-			transformPos(scale);
 			vertBuf->parseVertNorm();
 
 			memcpy((char*)&val, data + fileSize - 0xC, 4);
@@ -356,56 +356,54 @@ int main(int argc, char* argv[])
 			//could just break
 			//idk
 
-			uint32_t amountLOD;
-			bool bFound = false;
-			extOff = fileSize -= 4;
-			while (true)
+			if (lodCulling)
 			{
-				memcpy((char*)&val, data + extOff, 4);
-				if (val == 0x80806D37)
+				uint32_t amountLOD;
+				bool bFound = false;
+				extOff = fileSize -= 4;
+				while (true)
 				{
-					bFound = true;
-					extOff -= 8;
-					break;
+					memcpy((char*)&val, data + extOff, 4);
+					if (val == 0x80806D37)
+					{
+						bFound = true;
+						extOff -= 8;
+						break;
+					}
+					extOff -= 4;
 				}
-				extOff -= 4;
-			}
-			memcpy((char*)&amountLOD, data + extOff, 4);
-			extOff += 0x10;
-			int j = 0;
-			uint32_t splitnext_off;
-			uint32_t splitnext_count;
-			for (int o = extOff; o < extOff + (amountLOD * 12); o += 12) {
-				LODSplit split;
-				memcpy((char*)&split.off, data + o, 4);
-				memcpy((char*)&split.count, data + o + 4, 4);
-				memcpy((char*)&splitnext_off, data + o + 12, 4);
-				memcpy((char*)&splitnext_count, data + o + 16, 4);
-				std::cout << "CO: " + std::to_string(split.off) + " CC: " + std::to_string(split.count)
-					<< "\nNO: " + std::to_string(splitnext_off) + " NC: " + std::to_string(splitnext_count) << "\n";
-				if (j > 0 && submesh->lodsplit.size()) {
-					if (split.off == splitnext_off && split.count < splitnext_count) {
-						std::cout << "\ninvalid LOD or not LOD0. SKIIIIIP\n\n";
+				memcpy((char*)&amountLOD, data + extOff, 4);
+				extOff += 0x10;
+				int j = 0;
+				uint32_t splitnext_off;
+				uint32_t splitnext_count;
+				for (int o = extOff; o < extOff + (amountLOD * 12); o += 12) {
+					LODSplit split;
+					memcpy((char*)&split.off, data + o, 4);
+					memcpy((char*)&split.count, data + o + 4, 4);
+					memcpy((char*)&splitnext_off, data + o + 12, 4);
+					memcpy((char*)&splitnext_count, data + o + 16, 4);
+					//std::cout << "CO: " + std::to_string(split.off) + " CC: " + std::to_string(split.count)
+						//<< "\nNO: " + std::to_string(splitnext_off) + " NC: " + std::to_string(splitnext_count) << "\n";
+					if (j > 0 && submesh->lodsplit.size()) {
+						if (split.off == splitnext_off && split.count < splitnext_count) {
+							//std::cout << "\ninvalid LOD or not LOD0. SKIIIIIP\n\n";
+						}
+						else
+							submesh->lodsplit.push_back(split);
+					}
+					else if (split.off == splitnext_off && split.count < splitnext_count) {
+						//std::cout << "\ninvalid LOD or not LOD0. SKIIIIIP\n\n";
 					}
 					else
 						submesh->lodsplit.push_back(split);
+					j += 1;
 				}
-				else if (split.off == splitnext_off && split.count < splitnext_count) {
-					std::cout << "\ninvalid LOD or not LOD0. SKIIIIIP\n\n";
-				}
-				else
-					submesh->lodsplit.push_back(split);
-				j += 1;
-			}
 
-			delete[] data;
+				delete[] data;
 
-
-
-			if (lodCulling)
-			{
-				int o = 0;
 				Submesh* newsub = new Submesh();
+				int o = 0;
 				//newsub->vertPos = submesh->vertPos;
 				newsub->vertUV = submesh->vertUV;
 				newsub->vertNorm = submesh->vertNorm;
@@ -416,39 +414,42 @@ int main(int argc, char* argv[])
 				{
 					if (i * 3 == (submesh->lodsplit[o].off + submesh->lodsplit[o].count))
 					{
-						std::cout << "culled @ + " + std::to_string(i * 3) + "?\n";
-						std::cout << "newsub faces size: " + std::to_string(newsub->faces.size()) << "\n";
+						//std::cout << "culled @ + " + std::to_string(i * 3) + "?\n";
+						//std::cout << "newsub faces size: " + std::to_string(newsub->faces.size()) << "\n";
 						submeshes.push_back(newsub);
 						break;
 					}
 					else
 					{
-						std::cout << std::to_string(i * 3) + " != " + std::to_string(submesh->lodsplit[o].off + submesh->lodsplit[o].count) << "\n";
+						//std::cout << std::to_string(i * 3) + " != " + std::to_string(submesh->lodsplit[o].off + submesh->lodsplit[o].count) << "\n";
 						newsub->faces.push_back(submesh->faces[i]);
 					}
 				}
 
 				//submesh->faces.erase(submesh->faces.begin(), submesh->faces.begin() + (submesh->lodsplit[o].off + submesh->lodsplit[o].count));
-				//submeshes.push_back(submesh);
+				submeshes.push_back(submesh);
 			}
 			else
-				submeshes.push_back(submesh);	
+				submeshes.push_back(submesh);
 			for (int p = 0; p < submeshes.size(); p++)
 			{
-				submeshes[p]->name = modelHash + "_" + std::to_string(p);
+				submeshes[p]->name = modelhash + "_" + std::to_string(p);
 				FbxNode* node = fbxModel->addSubmeshToFbx(submeshes[p]);
 				nodes.push_back(node);
 			}
 			if (nodes.size()) {
 				for (auto& node : nodes) fbxModel->scene->GetRootNode()->AddChild(node);
-				std::string fbxpath = outputPath + "/" + modelHash + ".fbx";
+				std::string fbxpath = outputPath + "/" + modelhash + ".fbx";
 				fbxModel->save(fbxpath, false);
 			}
 
 			submesh->faces.clear();
 			submesh->vertPos.clear();
+			submesh->vertPosW.clear();
 			submesh->vertUV.clear();
 			submesh->vertCol.clear();
+			submesh->vertNorm.clear();
+			submesh->vertNormW.clear();
 			submesh->vertColSlots.clear();
 			submesh->scales.clear();
 			submesh->offset.clear();
@@ -458,8 +459,11 @@ int main(int argc, char* argv[])
 			nodes.clear();
 			fbxModel->scene->Clear();
 			submeshes.clear();
+			//free(submesh);
+			//if (lodCulling)
+				//free(newsub);
 		}
-		std::cout << "Finished extracting " + hashes.size() << " models.\n";
+		std::cout << "Finished extracting " + std::to_string(hashes.size()) << " models.\n";
 		fbxModel->manager->Destroy();
 	}
 }

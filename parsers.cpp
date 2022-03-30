@@ -71,6 +71,7 @@ void VertexBuffer::parseVertexColor()
 		submesh->vertCol.push_back(vc);
 	}
 	if (!bAnyValidVC) submesh->vertCol.clear();
+	delete[] data;
 }
 
 void IndexBufferHeader::getHeader(std::string x)
@@ -125,4 +126,5 @@ void IndexBuffer::getFaces(Submesh* submesh)
 		faceIndex += increment;
 		j++;
 	}
+	delete[] data;
 }

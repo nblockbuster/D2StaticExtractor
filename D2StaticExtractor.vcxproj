@@ -156,6 +156,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="package.cpp" />
     <ClCompile Include="parsers.cpp" />
+    <ClCompile Include="phonon.cpp" />
     <ClCompile Include="texture.cpp" />
   </ItemGroup>
   <ItemGroup>
