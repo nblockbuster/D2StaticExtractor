@@ -466,16 +466,6 @@ int main(int argc, char* argv[])
 	}
 }
 
-int getFile()
-{
-	pkgID = getPkgID(hash);
-	Package pkg(pkgID, packagesPath);
-	int fileSize;
-	data = pkg.getEntryData(hash, fileSize);
-	if (data == nullptr || sizeof(data) == 0) return 0;
-	return fileSize;
-}
-
 void addVertColSlots(Submesh* submesh){
 	for (auto& w : submesh->vertNormW)
 	{
