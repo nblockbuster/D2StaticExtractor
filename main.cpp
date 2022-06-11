@@ -340,10 +340,10 @@ int main(int argc, char* argv[])
 				addVertColSlots(submesh);
 			}
 			float uoff, voff, uscale, vscale;
-			memcpy((char*)&uscale, data + 0x48, 4);
-			memcpy((char*)&vscale, data + 0x4C, 4);
-			memcpy((char*)&uoff, data + 0x54, 4);
-			memcpy((char*)&voff, data + 0x58, 4);
+			memcpy((char*)&uscale, data + 0x44, 4);
+			memcpy((char*)&vscale, data + 0x48, 4);
+			memcpy((char*)&uoff, data + 0x4c, 4);
+			memcpy((char*)&voff, data + 0x50, 4);
 			submesh->scales.push_back(uscale);
 			submesh->scales.push_back(vscale);
 			submesh->offset.push_back(uoff);
