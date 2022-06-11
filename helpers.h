@@ -47,6 +47,7 @@ struct LODSplit
 {
 	uint32_t off;
 	uint32_t count;
+	uint16_t lodLevel;
 };
 
 class Submesh
@@ -57,15 +58,20 @@ public:
 	std::vector<std::vector<float>> vertNorm;
 	std::vector<std::vector<float>> vertUV;
 	std::vector<std::vector<float>> vertCol;
-	std::vector<std::vector<int16_t>> faces;
-	std::vector<std::vector<uint32_t>> facesu32;
-	std::vector<uint16_t> vertNormW;
+	std::vector<std::vector<uint32_t>> faces;
+	std::vector<int16_t> vertNormW;
+	std::vector<int16_t> vertPosW;
 	std::vector<std::vector<float>> vertColSlots;
 	int lodLevel;
 	std::string name;
 	bool isU32;
 	int type;
 	std::vector<LODSplit> lodsplit;
+	std::vector<float> scales;
+	std::vector<float> offset;
+	std::unordered_map<int, int> faceMap;
+	bool lodCulling;
+	void clear();
 };
 
 class File
@@ -79,7 +85,6 @@ public:
 	unsigned char* data = nullptr;
 	std::string pkgID = "";
 	std::string packagesPath;
-
 	int getData();
 };
 
@@ -90,3 +95,4 @@ private:
 public:
 	Header(std::string x, std::string pkgsPath) : File(x, pkgsPath) {}
 };
+
