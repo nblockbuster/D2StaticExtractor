@@ -19,25 +19,13 @@ FbxMesh* FbxModel::createMesh(Submesh* submesh) {
 		std::vector<float_t> v = submesh->vertPos[i];
 		mesh->SetControlPointAt(FbxVector4(-v[0], v[2], v[1]), i);
 	}
-	if (submesh->isU32) {
-		for (auto& uface : submesh->facesu32)
-		{
-			mesh->BeginPolygon();
-			mesh->AddPolygon(uface[0]);
-			mesh->AddPolygon(uface[1]);
-			mesh->AddPolygon(uface[2]);
-			mesh->EndPolygon();
-		}
-	}
-	else {
-		for (auto& face : submesh->faces)
-		{
-			mesh->BeginPolygon();
-			mesh->AddPolygon(face[0]);
-			mesh->AddPolygon(face[1]);
-			mesh->AddPolygon(face[2]);
-			mesh->EndPolygon();
-		}
+	for (auto& face : submesh->faces)
+	{
+		mesh->BeginPolygon();
+		mesh->AddPolygon(face[0]);
+		mesh->AddPolygon(face[1]);
+		mesh->AddPolygon(face[2]);
+		mesh->EndPolygon();
 	}
 	return mesh;
 }

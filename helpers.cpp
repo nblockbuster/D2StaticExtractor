@@ -156,8 +156,7 @@ int File::getData()
 {
 	if (hash.substr(hash.length() - 2) != "80" || hash.substr(hash.length() - 4) == "8080") return 0;
 
-	if (pkgID == "")
-		pkgID = getPkgID(hash);
+	pkgID = getPkgID(hash);
 	Package pkg(pkgID, packagesPath);
 	int fileSize;
 	data = pkg.getEntryData(hash, fileSize);
