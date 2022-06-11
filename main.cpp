@@ -279,7 +279,6 @@ int main(int argc, char* argv[])
 			}
 			for (auto mat : externalMaterials)
 			{
-
 				mat->parseMaterial(hash64Table);
 				mat->exportTextures(fullSavePath, texType);
 			}
@@ -465,6 +464,16 @@ int main(int argc, char* argv[])
 		std::cout << "Finished extracting " + std::to_string(hashes.size()) << " models.\n";
 		fbxModel->manager->Destroy();
 	}
+}
+
+int getFile()
+{
+	pkgID = getPkgID(hash);
+	Package pkg(pkgID, packagesPath);
+	int fileSize;
+	data = pkg.getEntryData(hash, fileSize);
+	if (data == nullptr || sizeof(data) == 0) return 0;
+	return fileSize;
 }
 
 void addVertColSlots(Submesh* submesh){
