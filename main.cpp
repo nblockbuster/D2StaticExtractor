@@ -28,6 +28,7 @@ int main(int argc, char* argv[])
 	sarge.setArgument("l", "lodcull", "disable lod culling", false);
 	sarge.setArgument("t", "texex", "texture extraction", false);
 	sarge.setArgument("f", "filetype", "type to convert to", true);
+	sarge.setArgument("d", "loadhash", "loadzone hash", true);
 	sarge.setDescription("Destiny 2 static model extractor by nblock.");
 	sarge.setUsage("D2StaicExtractor");
 	if (!sarge.parseArguments(argc, argv))
@@ -37,6 +38,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 	std::string pkgsPath, outputPath, batchPkg;
+	std::string lzHash = "";
 	std::string modelHash = "";
 	std::string texTypeIn = "";
 	uint32_t sfhash32;
@@ -46,6 +48,7 @@ int main(int argc, char* argv[])
 	sarge.getFlag("inputhash", modelHash);
 	sarge.getFlag("batch", batchPkg);
 	sarge.getFlag("filetype", texTypeIn);
+	sarge.getFlag("loadhash", lzHash);
 	lodCulling = true;
 	if (sarge.exists("lodcull"))
 		lodCulling = false;
@@ -110,7 +113,6 @@ int main(int argc, char* argv[])
 
 		VertexBuffer* vertBuf = new VertexBuffer(getReferenceFromHash(uint32ToHexStr(val), packagesPath), packagesPath, submesh);
 		vertBuf->parseVertPos();
-		transformPos(scale);
 		vertBuf->parseVertNorm();
 
 		memcpy((char*)&val, data + fileSize - 0xC, 4);
@@ -127,10 +129,10 @@ int main(int argc, char* argv[])
 			addVertColSlots(submesh);
 		}
 		float uoff, voff, uscale, vscale;
-		memcpy((char*)&uscale, data + 0x48, 4);
-		memcpy((char*)&vscale, data + 0x4C, 4);
-		memcpy((char*)&uoff, data + 0x54, 4);
-		memcpy((char*)&voff, data + 0x58, 4);
+		memcpy((char*)&uscale, data + 0x44, 4);
+		memcpy((char*)&vscale, data + 0x48, 4);
+		memcpy((char*)&uoff, data + 0x4c, 4);
+		memcpy((char*)&voff, data + 0x50, 4);
 		submesh->scales.push_back(uscale);
 		submesh->scales.push_back(vscale);
 		submesh->offset.push_back(uoff);
@@ -161,22 +163,28 @@ int main(int argc, char* argv[])
 			uint32_t splitnext_off;
 			uint32_t splitnext_count;
 			for (int o = extOff; o < extOff + (amountLOD * 12); o += 12) {
+				std::cout << std::to_string(o) << "\n";
+				std::cout << std::to_string(o+0xA) << "\n";
 				LODSplit split;
 				memcpy((char*)&split.off, data + o, 4);
 				memcpy((char*)&split.count, data + o + 4, 4);
+				memcpy((char*)&split.lodLevel, data + o + 0xA, 2);
 				memcpy((char*)&splitnext_off, data + o + 12, 4);
 				memcpy((char*)&splitnext_count, data + o + 16, 4);
-				std::cout << "CO: " + std::to_string(split.off) + " CC: " + std::to_string(split.count)
-					<< "\nNO: " + std::to_string(splitnext_off) + " NC: " + std::to_string(splitnext_count) << "\n";
-				if (j > 0 && submesh->lodsplit.size()) {
-					if (split.off == splitnext_off && split.count < splitnext_count) {
-						std::cout << "\ninvalid LOD or not LOD0. SKIIIIIP\n\n";
-					}
-					else
-						submesh->lodsplit.push_back(split);
-				}
-				else if (split.off == splitnext_off && split.count < splitnext_count) {
-					std::cout << "\ninvalid LOD or not LOD0. SKIIIIIP\n\n";
+				//if (j > 0 && submesh->lodsplit.size()) {
+				//	if ((split.off == splitnext_off && split.count < splitnext_count) || split.lodLevel != 769) {
+				//		std::cout << "lodlevel != 769\n";
+				//	}
+				//	else
+				//		submesh->lodsplit.push_back(split);
+				//}
+				//else if ((split.off == splitnext_off && split.count < splitnext_count) || split.lodLevel != 769) {
+				//	std::cout << "lodlevel != 769\n";
+				//}
+				//else
+				if (split.lodLevel != 769)
+				{
+					continue;
 				}
 				else
 					submesh->lodsplit.push_back(split);
@@ -185,32 +193,24 @@ int main(int argc, char* argv[])
 
 			delete[] data;
 
-
-
-			int o = 0;
-			Submesh* newsub = new Submesh();
-			//newsub->vertPos = submesh->vertPos;
-			newsub->vertUV = submesh->vertUV;
-			newsub->vertNorm = submesh->vertNorm;
-			newsub->vertCol = submesh->vertCol;
-			newsub->vertColSlots = submesh->vertColSlots;
-
-			for (int i = 0; i < submesh->faces.size(); i++)
-			{
-				if (i * 3 == (submesh->lodsplit[o].off + submesh->lodsplit[o].count))
-				{
-					std::cout << "culled @ + " + std::to_string(i * 3) + "?\n";
-					std::cout << "newsub faces size: " + std::to_string(newsub->faces.size()) << "\n";
-					submeshes.push_back(newsub);
-					break;
+			for (const auto& split : submesh->lodsplit) {
+				if (split.lodLevel != 769) {
+					continue;
 				}
-				else
-				{
-					std::cout << std::to_string(i * 3) + " != " + std::to_string(submesh->lodsplit[o].off + submesh->lodsplit[o].count) << "\n";
-					newsub->faces.push_back(submesh->faces[i]);
+				Submesh* newsub = new Submesh();
+				int o = 0;
+				newsub->vertPos = submesh->vertPos;
+				newsub->vertUV = submesh->vertUV;
+				newsub->vertNorm = submesh->vertNorm;
+				newsub->vertCol = submesh->vertCol;
+				newsub->vertColSlots = submesh->vertColSlots;
+				for (int i = split.off; i < split.off + split.count; i++) {
+					newsub->faces.push_back(submesh->faces[i/3]);
 				}
+
+				//newsub->faces.erase(newsub->faces.begin() + (split.off/3), newsub->faces.end() - (split.count/3));
+				submeshes.push_back(newsub);
 			}
-
 			//submesh->faces.erase(submesh->faces.begin(), submesh->faces.begin() + (submesh->lodsplit[o].off + submesh->lodsplit[o].count));
 			//submeshes.push_back(submesh);
 		}
@@ -229,7 +229,7 @@ int main(int argc, char* argv[])
 			std::string fbxpath = outputPath + "/" + modelHash + ".fbx";
 			fbxModel->save(fbxpath, false);
 		}
-		
+
 		//parse MATERIALS ?
 		if (sarge.exists("texex")) {
 			std::string fullSavePath = outputPath + "/textures/";
@@ -352,10 +352,7 @@ int main(int argc, char* argv[])
 			transformPos(scale);
 			transformUV();
 
-			//VERY EXPERIMENTAL
-			//could just break
-			//idk
-
+			//This is very experimental and might not work well.
 			if (lodCulling)
 			{
 				uint32_t amountLOD;
@@ -378,22 +375,28 @@ int main(int argc, char* argv[])
 				uint32_t splitnext_off;
 				uint32_t splitnext_count;
 				for (int o = extOff; o < extOff + (amountLOD * 12); o += 12) {
+					std::cout << std::to_string(o) << "\n";
+					std::cout << std::to_string(o + 0xA) << "\n";
 					LODSplit split;
 					memcpy((char*)&split.off, data + o, 4);
 					memcpy((char*)&split.count, data + o + 4, 4);
+					memcpy((char*)&split.lodLevel, data + o + 0xA, 2);
 					memcpy((char*)&splitnext_off, data + o + 12, 4);
 					memcpy((char*)&splitnext_count, data + o + 16, 4);
-					//std::cout << "CO: " + std::to_string(split.off) + " CC: " + std::to_string(split.count)
-						//<< "\nNO: " + std::to_string(splitnext_off) + " NC: " + std::to_string(splitnext_count) << "\n";
-					if (j > 0 && submesh->lodsplit.size()) {
-						if (split.off == splitnext_off && split.count < splitnext_count) {
-							//std::cout << "\ninvalid LOD or not LOD0. SKIIIIIP\n\n";
-						}
-						else
-							submesh->lodsplit.push_back(split);
-					}
-					else if (split.off == splitnext_off && split.count < splitnext_count) {
-						//std::cout << "\ninvalid LOD or not LOD0. SKIIIIIP\n\n";
+					//if (j > 0 && submesh->lodsplit.size()) {
+					//	if ((split.off == splitnext_off && split.count < splitnext_count) || split.lodLevel != 769) {
+					//		std::cout << "lodlevel != 769\n";
+					//	}
+					//	else
+					//		submesh->lodsplit.push_back(split);
+					//}
+					//else if ((split.off == splitnext_off && split.count < splitnext_count) || split.lodLevel != 769) {
+					//	std::cout << "lodlevel != 769\n";
+					//}
+					//else
+					if (split.lodLevel != 769)
+					{
+						continue;
 					}
 					else
 						submesh->lodsplit.push_back(split);
@@ -402,35 +405,31 @@ int main(int argc, char* argv[])
 
 				delete[] data;
 
-				Submesh* newsub = new Submesh();
-				int o = 0;
-				//newsub->vertPos = submesh->vertPos;
-				newsub->vertUV = submesh->vertUV;
-				newsub->vertNorm = submesh->vertNorm;
-				newsub->vertCol = submesh->vertCol;
-				newsub->vertColSlots = submesh->vertColSlots;
+				for (const auto& split : submesh->lodsplit) {
+					if (split.lodLevel != 769) {
+						continue;
+					}
+					Submesh* newsub = new Submesh();
+					int o = 0;
+					newsub->vertPos = submesh->vertPos;
+					newsub->vertUV = submesh->vertUV;
+					newsub->vertNorm = submesh->vertNorm;
+					newsub->vertCol = submesh->vertCol;
+					newsub->vertColSlots = submesh->vertColSlots;
+					for (int i = split.off; i < split.off + split.count; i++) {
+						newsub->faces.push_back(submesh->faces[i / 3]);
+					}
 
-				for (int i = 0; i < submesh->faces.size(); i++)
-				{
-					if (i * 3 == (submesh->lodsplit[o].off + submesh->lodsplit[o].count))
-					{
-						//std::cout << "culled @ + " + std::to_string(i * 3) + "?\n";
-						//std::cout << "newsub faces size: " + std::to_string(newsub->faces.size()) << "\n";
-						submeshes.push_back(newsub);
-						break;
-					}
-					else
-					{
-						//std::cout << std::to_string(i * 3) + " != " + std::to_string(submesh->lodsplit[o].off + submesh->lodsplit[o].count) << "\n";
-						newsub->faces.push_back(submesh->faces[i]);
-					}
+					//newsub->faces.erase(newsub->faces.begin() + (split.off/3), newsub->faces.end() - (split.count/3));
+					submeshes.push_back(newsub);
 				}
-
 				//submesh->faces.erase(submesh->faces.begin(), submesh->faces.begin() + (submesh->lodsplit[o].off + submesh->lodsplit[o].count));
+				//submeshes.push_back(submesh);
+			}
+			else {
+				delete[] data;
 				submeshes.push_back(submesh);
 			}
-			else
-				submeshes.push_back(submesh);
 			for (int p = 0; p < submeshes.size(); p++)
 			{
 				submeshes[p]->name = modelhash + "_" + std::to_string(p);
@@ -525,4 +524,20 @@ void transformPos(float scale)
 			vert[i] = vert[i] * scale;
 		}
 	}
+}
+
+void Submesh::clear()
+{
+	submesh->vertPos.clear();
+	submesh->vertPosW.clear();
+	submesh->vertUV.clear();
+	submesh->vertNorm.clear();
+	submesh->vertNormW.clear();
+	submesh->vertCol.clear();
+	submesh->vertColSlots.clear();
+	submesh->faces.clear();
+	submesh->lodsplit.clear();
+	submesh->faceMap.clear();
+	submesh->offset.clear();
+	submesh->scales.clear();
 }

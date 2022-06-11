@@ -5,6 +5,7 @@
 #include "parsers.h"
 #include "dxgiformat.h"
 #include <sarge.cpp>
+//#include <thread>
 
 unsigned char* data = nullptr;
 std::string hash = "";

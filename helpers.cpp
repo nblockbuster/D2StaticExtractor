@@ -20,25 +20,6 @@ std::string uint32ToHexStr(uint32_t num)
 	return hexStr;
 }
 
-std::string getReferenceFromHash(std::string hash, std::string pkgsPath)
-{
-	Package pkg(getPkgID(hash), pkgsPath);
-	std::string reference = pkg.getEntryReference(hash);
-	return reference;
-}
-
-std::string getPkgID(std::string hash)
-{
-	std::string pkgID = uint16ToHexStr(floor((hexStrToUint32(hash) - 0x80800000) / 8192));
-	return pkgID;
-}
-
-uint16_t getPkgID(uint32_t hash)
-{
-	uint16_t pkgID = floor((hash - 0x80800000) / 8192);
-	return pkgID;
-}
-
 uint32_t hexStrToUint16(std::string hash)
 {
 	return swapUInt16Endianness(std::stoul(hash, nullptr, 16));
@@ -80,6 +61,25 @@ uint64_t swapUInt64Endianness(uint64_t k)
 		((k & 0x00FF000000000000) >> 40) |
 		(k >> 56)
 		);
+}
+
+std::string getReferenceFromHash(std::string hash, std::string pkgsPath)
+{
+	Package pkg(getPkgID(hash), pkgsPath);
+	std::string reference = pkg.getEntryReference(hash);
+	return reference;
+}
+
+std::string getPkgID(std::string hash)
+{
+	std::string pkgID = uint16ToHexStr(floor((hexStrToUint32(hash) - 0x80800000) / 8192));
+	return pkgID;
+}
+
+uint16_t getPkgID(uint32_t hash)
+{
+	uint16_t pkgID = floor((hash - 0x80800000) / 8192);
+	return pkgID;
 }
 
 std::string getFileFromHash(std::string hsh)
@@ -156,8 +156,7 @@ int File::getData()
 {
 	if (hash.substr(hash.length() - 2) != "80" || hash.substr(hash.length() - 4) == "8080") return 0;
 
-	if (pkgID == "")
-		pkgID = getPkgID(hash);
+	pkgID = getPkgID(hash);
 	Package pkg(pkgID, packagesPath);
 	int fileSize;
 	data = pkg.getEntryData(hash, fileSize);

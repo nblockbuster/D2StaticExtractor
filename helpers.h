@@ -47,6 +47,7 @@ struct LODSplit
 {
 	uint32_t off;
 	uint32_t count;
+	uint16_t lodLevel;
 };
 
 class Submesh
@@ -70,6 +71,7 @@ public:
 	std::vector<float> offset;
 	std::unordered_map<int, int> faceMap;
 	bool lodCulling;
+	void clear();
 };
 
 class File
@@ -83,7 +85,6 @@ public:
 	unsigned char* data = nullptr;
 	std::string pkgID = "";
 	std::string packagesPath;
-
 	int getData();
 };
 
