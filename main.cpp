@@ -163,8 +163,8 @@ int main(int argc, char* argv[])
 			uint32_t splitnext_off;
 			uint32_t splitnext_count;
 			for (int o = extOff; o < extOff + (amountLOD * 12); o += 12) {
-				std::cout << std::to_string(o) << "\n";
-				std::cout << std::to_string(o+0xA) << "\n";
+				//std::cout << std::to_string(o) << "\n";
+				//std::cout << std::to_string(o+0xA) << "\n";
 				LODSplit split;
 				memcpy((char*)&split.off, data + o, 4);
 				memcpy((char*)&split.count, data + o + 4, 4);
@@ -375,8 +375,8 @@ int main(int argc, char* argv[])
 				uint32_t splitnext_off;
 				uint32_t splitnext_count;
 				for (int o = extOff; o < extOff + (amountLOD * 12); o += 12) {
-					std::cout << std::to_string(o) << "\n";
-					std::cout << std::to_string(o + 0xA) << "\n";
+					//std::cout << std::to_string(o) << "\n";
+					//std::cout << std::to_string(o + 0xA) << "\n";
 					LODSplit split;
 					memcpy((char*)&split.off, data + o, 4);
 					memcpy((char*)&split.count, data + o + 4, 4);
