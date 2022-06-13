@@ -93,6 +93,36 @@ int main(int argc, char* argv[])
 		delete[] data;
 		hash = uint32ToHexStr(sfhash32);
 		fileSize = getFile();
+
+		float uoff, voff, uscale, vscale;
+		memcpy((char*)&uscale, data + 0x48, 4);
+		memcpy((char*)&vscale, data + 0x50, 4);
+		memcpy((char*)&uoff, data + 0x54, 4);
+		memcpy((char*)&voff, data + 0x58, 4);
+		submesh->scales.push_back(uscale);
+		submesh->scales.push_back(vscale);
+		submesh->offset.push_back(uoff);
+		submesh->offset.push_back(voff);
+
+		uint32_t texOffset, texCount;
+		uint16_t PartIndex, Unk04;
+		int8_t Unk02, Unk03;
+		memcpy((char*)&texOffset, data + 0x10, 4);
+		texOffset += 0x10;
+		memcpy((char*)&texCount, data + texOffset, 4);
+		texOffset += 0x10;
+		for (int b = texOffset; b < texOffset + texCount * 6; b += 0x6)
+		{
+			memcpy((char*)&PartIndex, data + b, 2);
+			memcpy((char*)&Unk02, data + b + 2, 1);
+			memcpy((char*)&Unk03, data + b + 3, 1);
+			memcpy((char*)&Unk04, data + b + 4, 2);
+			std::cout << "Part Index: " << std::to_string(PartIndex) << " Unk02: " <<
+				std::to_string(Unk02) << " Unk03: " << std::to_string(Unk03)
+				<< " Unk04: " << std::to_string(Unk04) << "\n";
+		}
+
+
 		uint32_t val;
 		memcpy((char*)&val, data + fileSize - 0x14, 4);
 		if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80")
@@ -102,7 +132,6 @@ int main(int argc, char* argv[])
 		}
 
 		IndexBufferHeader* indexBufHeader = new IndexBufferHeader(uint32ToHexStr(val), packagesPath);
-		indexBufHeader->indexBuffer->getFaces(submesh);
 
 		memcpy((char*)&val, data + fileSize - 0x10, 4);
 		if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80")
@@ -112,8 +141,6 @@ int main(int argc, char* argv[])
 		}
 
 		VertexBuffer* vertBuf = new VertexBuffer(getReferenceFromHash(uint32ToHexStr(val), packagesPath), packagesPath, submesh);
-		vertBuf->parseVertPos();
-		vertBuf->parseVertNorm();
 
 		memcpy((char*)&val, data + fileSize - 0xC, 4);
 		if (val != 0xFFFFFFFF)
@@ -128,61 +155,33 @@ int main(int argc, char* argv[])
 			vertVCBuf->parseVertexColor();
 			addVertColSlots(submesh);
 		}
-		float uoff, voff, uscale, vscale;
-		memcpy((char*)&uscale, data + 0x44, 4);
-		memcpy((char*)&vscale, data + 0x48, 4);
-		memcpy((char*)&uoff, data + 0x4c, 4);
-		memcpy((char*)&voff, data + 0x50, 4);
-		submesh->scales.push_back(uscale);
-		submesh->scales.push_back(vscale);
-		submesh->offset.push_back(uoff);
-		submesh->offset.push_back(voff);
+
+		vertBuf->parseVertPos();
+		vertBuf->parseVertNorm();
 		transformPos(scale);
 		transformUV();
+		indexBufHeader->indexBuffer->getFaces(submesh);
 
 		//This is very experimental and might not work well.
+		//It could work much better now, but for some reason I stll dont trust it, even though it works.
 		if (lodCulling)
 		{
-			uint32_t amountLOD;
-			bool bFound = false;
-			extOff = fileSize -= 4;
-			while (true)
-			{
-				memcpy((char*)&val, data + extOff, 4);
-				if (val == 0x80806D37)
-				{
-					bFound = true;
-					extOff -= 8;
-					break;
-				}
-				extOff -= 4;
-			}
-			memcpy((char*)&amountLOD, data + extOff, 4);
-			extOff += 0x10;
+			uint32_t amountLOD, lodTableOffset;
+			memcpy((char*)&lodTableOffset, data + 0x20, 4);
+			lodTableOffset += 0x20;
+			memcpy((char*)&amountLOD, data + lodTableOffset, 4);
+			lodTableOffset += 0x10;
 			int j = 0;
 			uint32_t splitnext_off;
 			uint32_t splitnext_count;
-			for (int o = extOff; o < extOff + (amountLOD * 12); o += 12) {
-				//std::cout << std::to_string(o) << "\n";
-				//std::cout << std::to_string(o+0xA) << "\n";
+			for (int o = lodTableOffset; o < lodTableOffset + (amountLOD * 12); o += 12) {
 				LODSplit split;
-				memcpy((char*)&split.off, data + o, 4);
-				memcpy((char*)&split.count, data + o + 4, 4);
-				memcpy((char*)&split.lodLevel, data + o + 0xA, 2);
+				memcpy((char*)&split.IndexOffset, data + o, 4);
+				memcpy((char*)&split.IndexCount, data + o + 4, 4);
+				memcpy((char*)&split.DetailLevel, data + o + 0xA, 1);
 				memcpy((char*)&splitnext_off, data + o + 12, 4);
 				memcpy((char*)&splitnext_count, data + o + 16, 4);
-				//if (j > 0 && submesh->lodsplit.size()) {
-				//	if ((split.off == splitnext_off && split.count < splitnext_count) || split.lodLevel != 769) {
-				//		std::cout << "lodlevel != 769\n";
-				//	}
-				//	else
-				//		submesh->lodsplit.push_back(split);
-				//}
-				//else if ((split.off == splitnext_off && split.count < splitnext_count) || split.lodLevel != 769) {
-				//	std::cout << "lodlevel != 769\n";
-				//}
-				//else
-				if (split.lodLevel != 769)
+				if (split.DetailLevel != 1)
 				{
 					continue;
 				}
@@ -194,7 +193,7 @@ int main(int argc, char* argv[])
 			delete[] data;
 
 			for (const auto& split : submesh->lodsplit) {
-				if (split.lodLevel != 769) {
+				if (split.DetailLevel != 1) {
 					continue;
 				}
 				Submesh* newsub = new Submesh();
@@ -204,20 +203,20 @@ int main(int argc, char* argv[])
 				newsub->vertNorm = submesh->vertNorm;
 				newsub->vertCol = submesh->vertCol;
 				newsub->vertColSlots = submesh->vertColSlots;
-				for (int i = split.off; i < split.off + split.count; i++) {
-					newsub->faces.push_back(submesh->faces[i/3]);
+				for (int i = split.IndexOffset; i < split.IndexOffset + split.IndexCount; i++) {
+					newsub->faces.push_back(submesh->faces[i / 3]);
 				}
 
-				//newsub->faces.erase(newsub->faces.begin() + (split.off/3), newsub->faces.end() - (split.count/3));
+				//indexBufHeader->indexBuffer->getFaces(newsub, split.IndexOffset, split.IndexCount);
+
 				submeshes.push_back(newsub);
 			}
-			//submesh->faces.erase(submesh->faces.begin(), submesh->faces.begin() + (submesh->lodsplit[o].off + submesh->lodsplit[o].count));
-			//submeshes.push_back(submesh);
 		}
 		else {
 			delete[] data;
 			submeshes.push_back(submesh);
 		}
+		
 		for (int p = 0; p < submeshes.size(); p++)
 		{
 			submeshes[p]->name = modelHash + "_" + std::to_string(p);
@@ -311,19 +310,27 @@ int main(int argc, char* argv[])
 			delete[] data;
 			hash = uint32ToHexStr(sfhash32);
 			fileSize = getFile();
+
+			float uoff, voff, uscale, vscale;
+			memcpy((char*)&uscale, data + 0x48, 4);
+			memcpy((char*)&vscale, data + 0x50, 4);
+			memcpy((char*)&uoff, data + 0x54, 4);
+			memcpy((char*)&voff, data + 0x58, 4);
+			submesh->scales.push_back(uscale);
+			submesh->scales.push_back(vscale);
+			submesh->offset.push_back(uoff);
+			submesh->offset.push_back(voff);
+
 			uint32_t val;
 			memcpy((char*)&val, data + fileSize - 0x14, 4);
 			if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80") continue;
 
 			IndexBufferHeader* indexBufHeader = new IndexBufferHeader(uint32ToHexStr(val), packagesPath);
-			indexBufHeader->indexBuffer->getFaces(submesh);
 
 			memcpy((char*)&val, data + fileSize - 0x10, 4);
 			if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80") continue;
 
 			VertexBuffer* vertBuf = new VertexBuffer(getReferenceFromHash(uint32ToHexStr(val), packagesPath), packagesPath, submesh);
-			vertBuf->parseVertPos();
-			vertBuf->parseVertNorm();
 
 			memcpy((char*)&val, data + fileSize - 0xC, 4);
 			if (val != 0xFFFFFFFF)
@@ -338,62 +345,32 @@ int main(int argc, char* argv[])
 				vertVCBuf->parseVertexColor();
 				addVertColSlots(submesh);
 			}
-			float uoff, voff, uscale, vscale;
-			memcpy((char*)&uscale, data + 0x44, 4);
-			memcpy((char*)&vscale, data + 0x48, 4);
-			memcpy((char*)&uoff, data + 0x4c, 4);
-			memcpy((char*)&voff, data + 0x50, 4);
-			submesh->scales.push_back(uscale);
-			submesh->scales.push_back(vscale);
-			submesh->offset.push_back(uoff);
-			submesh->offset.push_back(voff);
-
+			vertBuf->parseVertPos();
+			vertBuf->parseVertNorm();
 			transformPos(scale);
 			transformUV();
+			indexBufHeader->indexBuffer->getFaces(submesh);
 
 			//This is very experimental and might not work well.
+			//It could work much better now, but for some reason I stll dont trust it, even though it works.
 			if (lodCulling)
 			{
-				uint32_t amountLOD;
-				bool bFound = false;
-				extOff = fileSize -= 4;
-				while (true)
-				{
-					memcpy((char*)&val, data + extOff, 4);
-					if (val == 0x80806D37)
-					{
-						bFound = true;
-						extOff -= 8;
-						break;
-					}
-					extOff -= 4;
-				}
-				memcpy((char*)&amountLOD, data + extOff, 4);
-				extOff += 0x10;
+				uint32_t amountLOD, lodTableOffset;
+				memcpy((char*)&lodTableOffset, data + 0x20, 4);
+				lodTableOffset += 0x20;
+				memcpy((char*)&amountLOD, data + lodTableOffset, 4);
+				lodTableOffset += 0x10;
 				int j = 0;
 				uint32_t splitnext_off;
 				uint32_t splitnext_count;
-				for (int o = extOff; o < extOff + (amountLOD * 12); o += 12) {
-					//std::cout << std::to_string(o) << "\n";
-					//std::cout << std::to_string(o + 0xA) << "\n";
+				for (int o = lodTableOffset; o < lodTableOffset + (amountLOD * 12); o += 12) {
 					LODSplit split;
-					memcpy((char*)&split.off, data + o, 4);
-					memcpy((char*)&split.count, data + o + 4, 4);
-					memcpy((char*)&split.lodLevel, data + o + 0xA, 2);
+					memcpy((char*)&split.IndexOffset, data + o, 4);
+					memcpy((char*)&split.IndexCount, data + o + 4, 4);
+					memcpy((char*)&split.DetailLevel, data + o + 0xA, 1);
 					memcpy((char*)&splitnext_off, data + o + 12, 4);
 					memcpy((char*)&splitnext_count, data + o + 16, 4);
-					//if (j > 0 && submesh->lodsplit.size()) {
-					//	if ((split.off == splitnext_off && split.count < splitnext_count) || split.lodLevel != 769) {
-					//		std::cout << "lodlevel != 769\n";
-					//	}
-					//	else
-					//		submesh->lodsplit.push_back(split);
-					//}
-					//else if ((split.off == splitnext_off && split.count < splitnext_count) || split.lodLevel != 769) {
-					//	std::cout << "lodlevel != 769\n";
-					//}
-					//else
-					if (split.lodLevel != 769)
+					if (split.DetailLevel != 1)
 					{
 						continue;
 					}
@@ -405,7 +382,7 @@ int main(int argc, char* argv[])
 				delete[] data;
 
 				for (const auto& split : submesh->lodsplit) {
-					if (split.lodLevel != 769) {
+					if (split.DetailLevel != 1) {
 						continue;
 					}
 					Submesh* newsub = new Submesh();
@@ -415,15 +392,14 @@ int main(int argc, char* argv[])
 					newsub->vertNorm = submesh->vertNorm;
 					newsub->vertCol = submesh->vertCol;
 					newsub->vertColSlots = submesh->vertColSlots;
-					for (int i = split.off; i < split.off + split.count; i++) {
+					for (int i = split.IndexOffset; i < split.IndexOffset + split.IndexCount; i++) {
 						newsub->faces.push_back(submesh->faces[i / 3]);
 					}
 
-					//newsub->faces.erase(newsub->faces.begin() + (split.off/3), newsub->faces.end() - (split.count/3));
+					//indexBufHeader->indexBuffer->getFaces(newsub, split.IndexOffset, split.IndexCount);
+
 					submeshes.push_back(newsub);
 				}
-				//submesh->faces.erase(submesh->faces.begin(), submesh->faces.begin() + (submesh->lodsplit[o].off + submesh->lodsplit[o].count));
-				//submeshes.push_back(submesh);
 			}
 			else {
 				delete[] data;

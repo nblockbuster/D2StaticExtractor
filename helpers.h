@@ -45,9 +45,9 @@ std::string to_str(double a_value);
 
 struct LODSplit
 {
-	uint32_t off;
-	uint32_t count;
-	uint16_t lodLevel;
+	uint32_t IndexOffset;
+	uint32_t IndexCount;
+	uint8_t DetailLevel;
 };
 
 class Submesh
