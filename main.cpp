@@ -87,6 +87,16 @@ int main(int argc, char* argv[])
 		fileSize = getFile();
 		memcpy((char*)&sfhash32, data + 0x8, 4);
 		memcpy((char*)&scale, data + 0x3C, 4);
+		Vector3 pos_off;
+		float x_off, y_off, z_off;
+		memcpy((char*)&x_off, data + 0x50, 4);
+		memcpy((char*)&y_off, data + 0x54, 4);
+		memcpy((char*)&z_off, data + 0x58, 4);
+
+		pos_off.x = x_off;// *-1;
+		pos_off.y = y_off;
+		pos_off.z = z_off;
+
 		if (scale == 0.000000)
 			scale = 1;
 		uint32_t extOff = 0;
@@ -103,25 +113,6 @@ int main(int argc, char* argv[])
 		submesh->scales.push_back(vscale);
 		submesh->offset.push_back(uoff);
 		submesh->offset.push_back(voff);
-
-		uint32_t texOffset, texCount;
-		uint16_t PartIndex, Unk04;
-		int8_t Unk02, Unk03;
-		memcpy((char*)&texOffset, data + 0x10, 4);
-		texOffset += 0x10;
-		memcpy((char*)&texCount, data + texOffset, 4);
-		texOffset += 0x10;
-		for (int b = texOffset; b < texOffset + texCount * 6; b += 0x6)
-		{
-			memcpy((char*)&PartIndex, data + b, 2);
-			memcpy((char*)&Unk02, data + b + 2, 1);
-			memcpy((char*)&Unk03, data + b + 3, 1);
-			memcpy((char*)&Unk04, data + b + 4, 2);
-			std::cout << "Part Index: " << std::to_string(PartIndex) << " Unk02: " <<
-				std::to_string(Unk02) << " Unk03: " << std::to_string(Unk03)
-				<< " Unk04: " << std::to_string(Unk04) << "\n";
-		}
-
 
 		uint32_t val;
 		memcpy((char*)&val, data + fileSize - 0x14, 4);
@@ -158,7 +149,7 @@ int main(int argc, char* argv[])
 
 		vertBuf->parseVertPos();
 		vertBuf->parseVertNorm();
-		transformPos(scale);
+		transformPos(scale, pos_off);
 		transformUV();
 		indexBufHeader->indexBuffer->getFaces(submesh);
 
@@ -171,44 +162,55 @@ int main(int argc, char* argv[])
 			lodTableOffset += 0x20;
 			memcpy((char*)&amountLOD, data + lodTableOffset, 4);
 			lodTableOffset += 0x10;
-			int j = 0;
-			uint32_t splitnext_off;
-			uint32_t splitnext_count;
 			for (int o = lodTableOffset; o < lodTableOffset + (amountLOD * 12); o += 12) {
 				LODSplit split;
 				memcpy((char*)&split.IndexOffset, data + o, 4);
 				memcpy((char*)&split.IndexCount, data + o + 4, 4);
 				memcpy((char*)&split.DetailLevel, data + o + 0xA, 1);
-				memcpy((char*)&splitnext_off, data + o + 12, 4);
-				memcpy((char*)&splitnext_count, data + o + 16, 4);
-				if (split.DetailLevel != 1)
-				{
+				if (split.DetailLevel != 1)// || split.DetailLevel != 0xA)
 					continue;
-				}
 				else
 					submesh->lodsplit.push_back(split);
-				j += 1;
 			}
 
 			delete[] data;
 
+
 			for (const auto& split : submesh->lodsplit) {
-				if (split.DetailLevel != 1) {
+				if (split.DetailLevel != 1)// || split.DetailLevel != 0xA) {
 					continue;
-				}
 				Submesh* newsub = new Submesh();
-				int o = 0;
-				newsub->vertPos = submesh->vertPos;
-				newsub->vertUV = submesh->vertUV;
-				newsub->vertNorm = submesh->vertNorm;
-				newsub->vertCol = submesh->vertCol;
-				newsub->vertColSlots = submesh->vertColSlots;
 				for (int i = split.IndexOffset; i < split.IndexOffset + split.IndexCount; i++) {
 					newsub->faces.push_back(submesh->faces[i / 3]);
 				}
-
-				//indexBufHeader->indexBuffer->getFaces(newsub, split.IndexOffset, split.IndexCount);
-
+				std::set<int> dsort;
+				for (auto& face : newsub->faces)
+				{
+					for (auto& f : face)
+					{
+						dsort.insert(f);
+					}
+				}
+				if (!dsort.size()) continue;
+				std::unordered_map<int, int> d;
+				int i = 0;
+				for (auto& val : dsort)
+				{
+					d[val] = i;
+					i++;
+				}
+				for (auto& face : newsub->faces)
+				{
+					for (auto& f : face)
+					{
+						f = d[f];
+					}
+				}
+				newsub->vertPos = trimVertsData(submesh->vertPos, dsort, false);
+				if (submesh->vertUV.size()) newsub->vertUV = trimVertsData(submesh->vertUV, dsort, false);
+				if (submesh->vertNorm.size()) newsub->vertNorm = trimVertsData(submesh->vertNorm, dsort, false);
+				if (submesh->vertCol.size()) newsub->vertCol = trimVertsData(submesh->vertCol, dsort, true);
+				newsub->vertColSlots = submesh->vertColSlots;
 				submeshes.push_back(newsub);
 			}
 		}
@@ -304,6 +306,15 @@ int main(int argc, char* argv[])
 			fileSize = getFile();
 			memcpy((char*)&sfhash32, data + 0x8, 4);
 			memcpy((char*)&scale, data + 0x3C, 4);
+			Vector3 pos_off;
+			float x_off, y_off, z_off;
+			memcpy((char*)&x_off, data + 0x50, 4);
+			memcpy((char*)&y_off, data + 0x54, 4);
+			memcpy((char*)&z_off, data + 0x58, 4);
+
+			pos_off.x = x_off;// *-1;
+			pos_off.y = y_off;
+			pos_off.z = z_off;
 			if (scale == 0.000000)
 				scale = 1;
 			uint32_t extOff = 0;
@@ -347,7 +358,7 @@ int main(int argc, char* argv[])
 			}
 			vertBuf->parseVertPos();
 			vertBuf->parseVertNorm();
-			transformPos(scale);
+			transformPos(scale, pos_off);
 			transformUV();
 			indexBufHeader->indexBuffer->getFaces(submesh);
 
@@ -360,44 +371,56 @@ int main(int argc, char* argv[])
 				lodTableOffset += 0x20;
 				memcpy((char*)&amountLOD, data + lodTableOffset, 4);
 				lodTableOffset += 0x10;
-				int j = 0;
-				uint32_t splitnext_off;
-				uint32_t splitnext_count;
 				for (int o = lodTableOffset; o < lodTableOffset + (amountLOD * 12); o += 12) {
 					LODSplit split;
 					memcpy((char*)&split.IndexOffset, data + o, 4);
 					memcpy((char*)&split.IndexCount, data + o + 4, 4);
 					memcpy((char*)&split.DetailLevel, data + o + 0xA, 1);
-					memcpy((char*)&splitnext_off, data + o + 12, 4);
-					memcpy((char*)&splitnext_count, data + o + 16, 4);
 					if (split.DetailLevel != 1)
 					{
 						continue;
 					}
 					else
 						submesh->lodsplit.push_back(split);
-					j += 1;
 				}
 
 				delete[] data;
 
 				for (const auto& split : submesh->lodsplit) {
-					if (split.DetailLevel != 1) {
+					if (split.DetailLevel != 1)// || split.DetailLevel != 0xA) {
 						continue;
-					}
 					Submesh* newsub = new Submesh();
-					int o = 0;
-					newsub->vertPos = submesh->vertPos;
-					newsub->vertUV = submesh->vertUV;
-					newsub->vertNorm = submesh->vertNorm;
-					newsub->vertCol = submesh->vertCol;
-					newsub->vertColSlots = submesh->vertColSlots;
 					for (int i = split.IndexOffset; i < split.IndexOffset + split.IndexCount; i++) {
 						newsub->faces.push_back(submesh->faces[i / 3]);
 					}
-
-					//indexBufHeader->indexBuffer->getFaces(newsub, split.IndexOffset, split.IndexCount);
-
+					std::set<int> dsort;
+					for (auto& face : newsub->faces)
+					{
+						for (auto& f : face)
+						{
+							dsort.insert(f);
+						}
+					}
+					if (!dsort.size()) continue;
+					std::unordered_map<int, int> d;
+					int i = 0;
+					for (auto& val : dsort)
+					{
+						d[val] = i;
+						i++;
+					}
+					for (auto& face : newsub->faces)
+					{
+						for (auto& f : face)
+						{
+							f = d[f];
+						}
+					}
+					newsub->vertPos = trimVertsData(submesh->vertPos, dsort, false);
+					if (submesh->vertUV.size()) newsub->vertUV = trimVertsData(submesh->vertUV, dsort, false);
+					if (submesh->vertNorm.size()) newsub->vertNorm = trimVertsData(submesh->vertNorm, dsort, false);
+					if (submesh->vertCol.size()) newsub->vertCol = trimVertsData(submesh->vertCol, dsort, true);
+					newsub->vertColSlots = submesh->vertColSlots;
 					submeshes.push_back(newsub);
 				}
 			}
@@ -441,6 +464,26 @@ int main(int argc, char* argv[])
 		fbxModel->manager->Destroy();
 	}
 }
+
+std::vector<std::vector<float_t>> trimVertsData(std::vector<std::vector<float_t>> verts, std::set<int> dsort, bool bVertCol)
+{
+	std::vector<std::vector<float_t>> newVec;
+	std::vector<float_t> zeroVec = { 0, 0, 0, 0 };
+	for (auto& val : dsort)
+	{
+		if (bVertCol)
+		{
+			if (val >= verts.size()) newVec.push_back(zeroVec);
+			else newVec.push_back(verts[val]);
+		}
+		else
+		{
+			newVec.push_back(verts[val]);
+		}
+	}
+	return newVec;
+}
+
 
 void addVertColSlots(Submesh* submesh){
 	for (auto& w : submesh->vertNormW)
@@ -490,7 +533,7 @@ void transformUV()
 	}
 }
 
-void transformPos(float scale)
+void transformPos(float scale, Vector3 pos_off)
 {
 	for (auto& vert : submesh->vertPos)
 	{
@@ -498,6 +541,9 @@ void transformPos(float scale)
 		{
 			vert[i] = vert[i] * scale;
 		}
+		vert[0] = vert[0] + pos_off.x;
+		//vert[1] = vert[1] + pos_off.y;
+		vert[2] = vert[2] + pos_off.z;
 	}
 }
 

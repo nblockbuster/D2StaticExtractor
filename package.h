@@ -72,6 +72,7 @@ private:
 	int64_t OodleLZ_Decompress;
 	HMODULE hOodleDll;
 
+	std::unordered_map<std::string, std::string> id_patch_dict;
 
 	void getBlockTable();
 	void extractFiles();
