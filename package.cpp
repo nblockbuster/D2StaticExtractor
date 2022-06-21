@@ -29,7 +29,6 @@ std::string Package::getLatestPatchIDPath(std::string packageID)
 	std::string fullPath = "";
 	uint16_t patchID;
 	int largestPatchID = -1;
-	//std::cout << packageName << "\n";
 	for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(packagesPath))
 	{
 		fullPath = entry.path().string();
@@ -41,10 +40,6 @@ std::string Package::getLatestPatchIDPath(std::string packageID)
 			packageName = fullPath.substr(0, fullPath.size() - 6);
 			packageName = packageName.substr(packageName.find_last_of('/'));
 		}
-	}
-	if (id_patch_dict.size() != 0 && id_patch_dict.find(packageID) != id_patch_dict.end())
-	{
-		return packagesPath + "/" + packageName + "_" + id_patch_dict[packageID] + ".pkg";
 	}
 	// Some strings are not covered, such as the bootstrap set so we need to do pkg checks
 	if (largestPatchID == -1)
@@ -76,7 +71,6 @@ std::string Package::getLatestPatchIDPath(std::string packageID)
 			fclose(patchPkg);
 		}
 	}
-	id_patch_dict[packageID] = std::to_string(largestPatchID);
 	return packagesPath + "/" + packageName + "_" + std::to_string(largestPatchID) + ".pkg";
 }
 
