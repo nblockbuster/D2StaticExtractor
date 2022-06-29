@@ -87,11 +87,11 @@ int main(int argc, char* argv[])
 			saveH64Table(hash64Table);
 		}
 		/*
-		* Input hashes must be of class 07878080 — i call them "Bubble Pointers".
-		* These Bubble Pointer files point to ones of class 83988080. - my name for these personally are "DynStaMapPointers" (Dynamic/Static Map Pointers)
+		* Input hashes must be of class 07878080 — i call them "Bubble Pointers". The term bubble may not be right here, but eh whatever.
+		* These Bubble Pointer files point to ones of class 83988080. - my name for these personally are "DynStaMapPointers" (Dynamic/Static Map Pointers).
 		* 
-		* If the file has a reference to a static loadzone file, the data would just be 0-0—0—1 for rotation (quaternion) and 0-0-0-1 for pos/scale (XZY-Scale)
-		* These files also have references to Dyn1 Header files as hash64 that can be put into MDE to get the object, for example a static reference will most likely be a plane
+		* If the file has a reference to a static loadzone file, the data would just be 0-0—0—1 for rotation (quaternion) and 0-0-0-1 for pos/scale (XZY-Scale) as far as ive seen so far.
+		* These files also have references to Dyn1 Header files as hash64 that can be put into MDE to get the object, for example a static reference will most likely be a plane.
 		* If the file has references to dynamics, the data layout would be the same as static ones, just with much more data.
 		* 
 		* For each 144 byte block in the 85988080 table, the layout would be like this:
@@ -104,7 +104,19 @@ int main(int argc, char* argv[])
 		* 0x2C - Unk2C
 		* 0x30 - Hash64 Value
 		* 
-		* And the rest is unknown to me!
+		* And the rest is unknown to me in that 144 byte chunk!
+		* 
+		* The final files before the ones that actually point to the static models themselves are simple, just a hash at 0x8
+		* that points to the base loadzone file.
+		* 
+		* The base loadzone files can be a bit complex, but to put it simply, theres a table that holds the rotation and
+		* positon of each instance of every model.
+		* Just going through the hash list and lining up hash 0 to position 0 will be correct, until it goes to
+		* hash1 and position 1, which if hash 0 is instanced, it wont be right.
+		* 
+		* To instance the files, ive used a table at the bottom of file that i just call the lookup table.
+		* The lookup table has basically a counter and a number of how many instances of that hash.
+		* I dont 100% remember what i did for that so just look down at around line 350, for the while loop.
 		*/
 		if (getReferenceFromHash(BubbleHash, packagesPath) != "07878080") { std::cout << "Not a valid bubble hash.\n"; exit(56); }
 		hash = BubbleHash;
@@ -127,7 +139,6 @@ int main(int argc, char* argv[])
 		delete[] bubdata;
 		std::vector<Vector4> Rotation;
 		std::vector<Vector4> Translation;
-		//std::set<std::string> ExistingDynamicHashes;
 		std::vector<std::string> DynamicHashes;
 		std::vector<std::string> StaticLZs;
 		std::vector<FbxNode*> DynPointNodes;
@@ -155,7 +166,8 @@ int main(int argc, char* argv[])
 				memcpy((void*)&fy, pbdata + p + 0x14, 4);
 				memcpy((void*)&fz, pbdata + p + 0x18, 4);
 				memcpy((void*)&lzscale, pbdata + p + 0x1C, 4);
-				//These might not be right, i havent tested them yet.
+				//--These might not be right, i havent tested them yet.--
+				//These seem right.
 				quaty *= -1;
 				quatz *= -1;
 				quatw *= -1;
@@ -174,18 +186,17 @@ int main(int argc, char* argv[])
 				h64_hash = getHash64(hVal, hash64Table);
 				std::string name = uint32ToHexStr(h64Check);
 				DynamicHashes.push_back(h64_hash);
-				//ExistingDynamicHashes.insert(h64_hash)
 			}
 			memcpy((char*)&val, pbdata + end + 0x4, 4);
 			if (val != 0x80806CC9)
 			{
-				std::cout << "I dont know what to do here.\n";
+				std::cout << "I dont know what to do here.\n"; //These seem to be tables for extra stuff relating to dynamics. I'll probably have to use it at some point, but not right now.
 				continue;
 			}
 			else
 			{
 				memcpy((char*)&val, pbdata + end + 0x10, 4);
-				if (uint32ToHexStr(val) != "ffffffff") std::cout << "I also dont know what to do here.\n";
+				if (uint32ToHexStr(val) != "ffffffff") std::cout << "I also dont know what to do here.\n"; //This hasnt seemed to trip yet, making me think that its always 0xFFFFFFFF
 				else
 				{
 					memcpy((char*)&val, pbdata + end + 0x18, 4);
@@ -225,7 +236,6 @@ int main(int argc, char* argv[])
 				dynamic_point_model->save(full_dyn_path, false);
 			}
 			DynPointNodes.clear();
-
 		}
 		
 		dynamic_point_model->scene->Clear();
@@ -415,15 +425,16 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 				vertVCBuf->parseVertexColor();
 				addVertColSlots(submesh);
 			}
-			float uoff, voff, uscale, vscale;
-			memcpy((char*)&uscale, data + 0x44, 4);
-			memcpy((char*)&vscale, data + 0x48, 4);
-			memcpy((char*)&uoff, data + 0x4c, 4);
-			memcpy((char*)&voff, data + 0x50, 4);
-			submesh->scales.push_back(uscale);
-			submesh->scales.push_back(vscale);
-			submesh->offset.push_back(uoff);
-			submesh->offset.push_back(voff);
+			float TXCoord_ScaleX, TXCoord_ScaleY, TXCoord_OffsetX, TXCoord_OffsetY;
+			//Current offsets for texcoord/uv scale and offset stuff.
+			memcpy((char*)&TXCoord_ScaleX, data + 0x48, 4);
+			memcpy((char*)&TXCoord_ScaleY, data + 0x50, 4);
+			memcpy((char*)&TXCoord_OffsetX, data + 0x54, 4);
+			memcpy((char*)&TXCoord_OffsetY, data + 0x58, 4);
+			submesh->scales.x = TXCoord_ScaleX;
+			submesh->scales.y = TXCoord_ScaleY;
+			submesh->offset.x = TXCoord_OffsetX;
+			submesh->offset.y = TXCoord_OffsetY;
 
 			vertBuf->parseVertPos();
 			indexBufHeader->indexBuffer->getFaces(submesh);
@@ -675,8 +686,8 @@ void transformUV()
 {
 	for (auto& vert : submesh->vertUV)
 	{
-		vert[0] = vert[0] * submesh->scales[0] + submesh->offset[0];
-		vert[1] = vert[1] * -submesh->scales[1] + (1 - submesh->offset[1]);
+		vert[0] = vert[0] * submesh->scales.x + submesh->offset.x;
+		vert[1] = vert[1] * - submesh->scales.y + (1 - submesh->offset.y);
 	}
 }
 
@@ -684,13 +695,18 @@ void transformPos(float scale, Vector3 pos_off)
 {
 	for (auto& vert : submesh->vertPos)
 	{
-		for (int i = 0; i < 3; i++)
-		{
-			vert[i] = vert[i] * scale;
-		}
-		vert[0] = vert[0] + pos_off.x;
+		vert[0] *= scale + pos_off.x;
+		vert[1] *= scale + pos_off.y;
+		vert[2] *= scale + pos_off.z;
+
+		//for (int i = 0; i < 3; i++)
+		//{
+		//	vert[i] = vert[i] * scale;
+		//}
+		//modify vert position with pos_off values
+		//vert[0] = vert[0] + pos_off.x;
 		//vert[1] = vert[1] + pos_off.y;
-		vert[2] = vert[2] + pos_off.z;
+		//vert[2] = vert[2] + pos_off.z;
 	}
 }
 
