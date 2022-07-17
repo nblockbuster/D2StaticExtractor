@@ -155,6 +155,7 @@
     <ClCompile Include="helpers.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="package.cpp" />
+    <ClCompile Include="parsers.cpp" />
     <ClCompile Include="texture.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -163,6 +164,7 @@
     <ClInclude Include="helpers.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="package.h" />
+    <ClInclude Include="parsers.h" />
     <ClInclude Include="texture.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

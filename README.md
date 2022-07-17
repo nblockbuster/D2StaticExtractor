@@ -1,21 +1,24 @@
-# [Download from here](https://github.com/nblockbuster/D2StaticExtractor/releases)
 # D2StaticExtractor (DSE)
+## [Charm](https://github.com/MontagueM/Charm) exists and is a better tool than this.
 DSE is a static model extraction tool that converts Destiny 2 static models into fbx files. A static model is any model that **does not** move, is **not** animated, or **doesn't** have a skeleton.  
+
+## [Download from here](https://github.com/nblockbuster/D2StaticExtractor/releases)
+
 
 **DSE only supports Destiny 2 versions past 3.0.0.1 (Beyond Light) as of now.**   
 **Textures only work past 4.0.0.1 (TWQ), unless you usea previous release.**
 
 I will try to add support for these in the near future:
-- Correct UV transforms (just a bit of scaling & positioning now!) 
+- Full working LOD culling
+- Correct UV transforms
+- Seperating models by material used
 - Correct vertex normals
-- Vertex color
-- Full working LOD culling (working on it!!)
-- Seperating models by material used (also working on it!)  
+- Fix scaling
+- Correct vertex position offsets n stuff
+- Loadzones  
 
 Far-off goals:
-- Loadzones
 - Pre-BL
-- Destiny 1  
 
 
 There is no risk of a ban by using this tool.  

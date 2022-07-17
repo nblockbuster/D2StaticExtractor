@@ -71,7 +71,6 @@ std::string Package::getLatestPatchIDPath(std::string packageID)
 			fclose(patchPkg);
 		}
 	}
-
 	return packagesPath + "/" + packageName + "_" + std::to_string(largestPatchID) + ".pkg";
 }
 

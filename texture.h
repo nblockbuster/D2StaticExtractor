@@ -3,6 +3,15 @@
 #include "dxgiformat.h"
 #include <fstream>
 
+struct TexHeader
+{
+	uint32_t TextureFormat;
+	uint16_t Width;
+	uint16_t Height;
+	uint16_t ArraySize;
+	uint32_t LargeTextureHash;
+};
+
 struct DDSHeader
 {
 	uint32_t MagicNumber;
@@ -38,18 +47,39 @@ struct DXT10Header
 	uint32_t miscFlags2;
 };
 
-class Texture
+class Texture : public Header
 {
 private:
-public:
-	unsigned char* data;
+	File* dataFile = nullptr;
 	int textureFormat;
-	int fileSize;
 	uint16_t width;
 	uint16_t height;
 	uint16_t arraySize;
+	std::string largeHash;
 	std::string fullSavePath;
 
+	void getHeader(std::string x);
 	void writeTexture(std::string fullSavePath);
 	void writeFile(DDSHeader dds, DXT10Header dxt, std::string fullSavePath);
+public:
+	Texture(std::string x, std::string pkgsPath) : Header(x, pkgsPath)
+	{
+		getData();
+		getHeader(x);
+	}
+
+	void tex2DDS(std::string fullSavePath);
+	void tex2Other(std::string fullSavePath, std::string saveFormat);
+};
+
+class Material : public File
+{
+private:
+public:
+	std::vector<std::string> cbuffers;
+	std::unordered_map<uint8_t, Texture*> textures;
+	Material(std::string x, std::string pkgsPath) : File(x, pkgsPath) {};
+
+	void parseMaterial(std::unordered_map<uint64_t, uint32_t> hash64Table);
+	void exportTextures(std::string fullSavePath, std::string saveFormat);
 };

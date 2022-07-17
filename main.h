@@ -2,9 +2,10 @@
 #include "helpers.h"
 #include "fbxmodel.h"
 #include "texture.h"
+#include "parsers.h"
 #include "dxgiformat.h"
 #include <sarge.cpp>
-#include <regex>
+//#include <thread>
 
 unsigned char* data = nullptr;
 std::string hash = "";
@@ -20,3 +21,30 @@ void addVertColSlots(Submesh* submesh);
 
 std::vector<LODSplit> IndexLODSplits;
 std::vector<Submesh*> submeshes;
+struct Vector3
+{
+	double x;
+	double y;
+	double z;
+};
+
+struct Vector4
+{
+	double x;
+	double y;
+	double z;
+	double w;
+};
+
+struct LookupTable
+{
+	uint16_t EntryA;
+	uint16_t EntryB;
+	uint16_t EntryC;
+	uint16_t EntryD;
+};
+
+void transformUV();
+void transformPos(float scale, Vector3 pos_off);
+
+std::vector<std::vector<float_t>> trimVertsData(std::vector<std::vector<float_t>> verts, std::set<int> dsort, bool bVertCol);
