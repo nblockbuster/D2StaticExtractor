@@ -49,10 +49,6 @@ struct LODSplit
 	uint32_t IndexCount;
 	uint8_t DetailLevel;
 };
-//from HLSLDecompiler.dll
-typedef int(*DecompileHLSLDef)(unsigned char* pShaderBytecode, int BytecodeLength, unsigned char* pHlslText);
-int DecompileHLSL;
-HMODULE hDecompileHLSLDll;
 
 class Submesh
 {
@@ -71,8 +67,8 @@ public:
 	bool isU32;
 	int type;
 	std::vector<LODSplit> lodsplit;
-	Vector2 scales;
-	Vector2 offset;
+	std::vector<float> scales;
+	std::vector<float> offset;
 	std::unordered_map<int, int> faceMap;
 	bool lodCulling;
 	void clear();
@@ -100,24 +96,3 @@ public:
 	Header(std::string x, std::string pkgsPath) : File(x, pkgsPath) {}
 };
 
-
-struct Vector2
-{
-	double x;
-	double y;
-};
-
-struct Vector3
-{
-	double x;
-	double y;
-	double z;
-};
-
-struct Vector4
-{
-	double x;
-	double y;
-	double z;
-	double w;
-};
