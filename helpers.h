@@ -43,16 +43,34 @@ void filePutContents(const std::string& name, const std::string& content);
 
 std::string to_str(double a_value);
 
+struct Vector2
+{
+	double x;
+	double y;
+};
+
+struct Vector3
+{
+	double x;
+	double y;
+	double z;
+};
+
+struct Vector4
+{
+	double x;
+	double y;
+	double z;
+	double w;
+};
+
 struct LODSplit
 {
 	uint32_t IndexOffset;
 	uint32_t IndexCount;
 	uint8_t DetailLevel;
+	uint8_t submeshIndex;
 };
-//from HLSLDecompiler.dll
-typedef int(*DecompileHLSLDef)(unsigned char* pShaderBytecode, int BytecodeLength, unsigned char* pHlslText);
-int DecompileHLSL;
-HMODULE hDecompileHLSLDll;
 
 class Submesh
 {
@@ -76,6 +94,7 @@ public:
 	std::unordered_map<int, int> faceMap;
 	bool lodCulling;
 	void clear();
+	uint32_t someValue;
 };
 
 class File
@@ -98,26 +117,4 @@ private:
 
 public:
 	Header(std::string x, std::string pkgsPath) : File(x, pkgsPath) {}
-};
-
-
-struct Vector2
-{
-	double x;
-	double y;
-};
-
-struct Vector3
-{
-	double x;
-	double y;
-	double z;
-};
-
-struct Vector4
-{
-	double x;
-	double y;
-	double z;
-	double w;
 };

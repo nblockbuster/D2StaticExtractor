@@ -1,10 +1,15 @@
 #include "parsers.h"
 
+void VertexBufferHeader::getHeader(std::string x)
+{
+	memcpy((char*)&stride, data + 4, 2);
+}
+
 void VertexBuffer::parseVertPos()
 {
 	int fileSize = getData();
 	int16_t num;
-	for (int i = 0; i < fileSize; i += 0x10) {
+	for (int i = 0; i < fileSize; i += stride) {
 		std::vector<float> vertexpos;
 		vertexpos.reserve(3);
 		for (int j = 0; j < 3; j++)
@@ -21,7 +26,7 @@ void VertexBuffer::parseVertNorm()
 {
 	int fileSize = getData();
 	int16_t num;
-	for (int i = 0; i < fileSize; i += 0x10) {
+	for (int i = 0; i < fileSize; i += stride) {
 		std::vector<float> norm;
 		norm.reserve(3);
 		for (int j = 0; j < 3; j++)
@@ -42,7 +47,7 @@ void VertexBuffer::parseVertUV()
 {
 	int fileSize = getData();
 	int16_t u, v;
-	for (int i = 0; i < fileSize; i += 0x4) {
+	for (int i = 0; i < fileSize; i += stride) {
 		std::vector<float> uvert;
 		uvert.reserve(2);
 		memcpy((char*)&u, data + i, 2);
@@ -58,7 +63,7 @@ void VertexBuffer::parseVertexColor()
 {
 	int fileSize = getData();
 	bool bAnyValidVC = false;
-	for (int i = 0; i < fileSize; i += 4) {
+	for (int i = 0; i < fileSize; i += stride) {
 		int8_t val;
 		std::vector<float> vc;
 		for (int j = i; j < i + 4; j++) {

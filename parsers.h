@@ -6,10 +6,12 @@ class VertexBuffer : public File
 private:
 	Submesh* submesh;
 public:
+	int stride = -1;
 
-	VertexBuffer(std::string x, std::string pkgsPath, Submesh* sub) : File(x, pkgsPath)
+	VertexBuffer(std::string x, std::string pkgsPath, int s, Submesh* sub) : File(x, pkgsPath)
 	{
 		submesh = sub;
+		stride = s;
 	};
 
 	void parseVertPos();
@@ -44,6 +46,23 @@ public:
 			getData();
 			getHeader(x);
 			indexBuffer = new IndexBuffer(getReferenceFromHash(x, pkgsPath), pkgsPath, stride);
+		}
+	}
+};
+class VertexBufferHeader : public Header
+{
+private:
+	void getHeader(std::string x);
+public:
+	int stride = 2;
+	VertexBuffer* vertexBuffer = nullptr;
+	VertexBufferHeader(std::string x, std::string pkgsPath, Submesh* sub) : Header(x, pkgsPath)
+	{
+		if (x != "")
+		{
+			getData();
+			getHeader(x);
+			vertexBuffer = new VertexBuffer(getReferenceFromHash(x, pkgsPath), pkgsPath, stride, sub);
 		}
 	}
 };

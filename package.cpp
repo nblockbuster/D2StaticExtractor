@@ -82,30 +82,28 @@ bool Package::readHeader()
 	{
 		return false;
 	}
-	fseek(pkgFile, 0x10, SEEK_SET);
+	fseek(pkgFile, 0x04, SEEK_SET);
 	fread((char*)&header.pkgID, 1, 2, pkgFile);
 
-	fseek(pkgFile, 0x30, SEEK_SET);
+	fseek(pkgFile, 0x20, SEEK_SET);
 	fread((char*)&header.patchID, 1, 2, pkgFile);
 
 	// Entry Table
-	fseek(pkgFile, 0x44, SEEK_SET);
+	fseek(pkgFile, 0x110, SEEK_SET);
 	fread((char*)&header.entryTableOffset, 1, 4, pkgFile);
 
-	fseek(pkgFile, 0x60, SEEK_SET);
+	header.entryTableOffset += 96;
+
+	fseek(pkgFile, 0xB4, SEEK_SET);
 	fread((char*)&header.entryTableSize, 1, 4, pkgFile);
 
 	// Block Table
 
-	fseek(pkgFile, 0x68, SEEK_SET);
+	fseek(pkgFile, 0xD0, SEEK_SET);
 	fread((char*)&header.blockTableSize, 1, 4, pkgFile);
-	fread((char*)&header.blockTableOffset, 1, 4, pkgFile);
 
-	// Hash64 Table
-	fseek(pkgFile, 0xB8, SEEK_SET);
-	fread((char*)&header.hash64TableSize, 1, 4, pkgFile);
-	fread((char*)&header.hash64TableOffset, 1, 4, pkgFile);
-	header.hash64TableOffset += 64; // relative offset
+	header.blockTableOffset = header.entryTableOffset + header.entryTableSize * 16 + 32;
+
 	return true;
 }
 
@@ -152,7 +150,7 @@ void Package::getBlockTable()
 		fread((char*)&block.size, 1, 4, pkgFile);
 		fread((char*)&block.patchID, 1, 2, pkgFile);
 		fread((char*)&block.bitFlag, 1, 2, pkgFile);
-		fseek(pkgFile, i + 0x20, SEEK_SET);
+		fseek(pkgFile, 0x14, SEEK_CUR);
 		fread((char*)&block.gcmTag, 16, 1, pkgFile);
 		blocks.push_back(block);
 	}
@@ -162,6 +160,7 @@ void Package::modifyNonce()
 {
 	// Nonce
 	nonce[0] ^= (header.pkgID >> 8) & 0xFF;
+	nonce[1] ^= 0x26;
 	nonce[11] ^= header.pkgID & 0xFF;
 }
 
@@ -295,7 +294,7 @@ void Package::decompressBlock(Block block, unsigned char* decryptBuffer, unsigne
 
 bool Package::initOodle()
 {
-	hOodleDll = LoadLibrary(L"oo2core_9_win64.dll");
+	hOodleDll = LoadLibrary(L"oo2core_3_win64.dll");
 	if (hOodleDll == nullptr) {
 		return false;
 	}
@@ -336,8 +335,9 @@ std::string Package::getEntryReference(std::string hash)
 		return "";
 		//exit(status);
 	}
-	fseek(pkgFile, 0x44, SEEK_SET);
+	fseek(pkgFile, 0x110, SEEK_SET);
 	fread((char*)&entryTableOffset, 1, 4, pkgFile);
+	entryTableOffset += 96;
 
 	// Getting reference
 	uint32_t entryA;
@@ -363,8 +363,9 @@ uint8_t Package::getEntryTypes(std::string hash, uint8_t& subType)
 		return -1;
 		//exit(1);
 	}
-	fseek(pkgFile, 0x44, SEEK_SET);
+	fseek(pkgFile, 0x110, SEEK_SET);
 	fread((char*)&entryTableOffset, 1, 4, pkgFile);
+	entryTableOffset += 96;
 
 	// Getting reference
 	// EntryB
@@ -423,110 +424,6 @@ unsigned char* Package::getEntryData(std::string hash, int& fileSize)
 	return buffer;
 }
 
-std::unordered_map<uint64_t, uint32_t> generateH64Table(std::string packagesPath)
-{
-	std::set<std::string> pkgIDs;
-	std::unordered_map<uint64_t, uint32_t> hash64Table;
-
-	std::string path;
-	int status;
-	std::string fullPath;
-	std::string reducedPath;
-	uint16_t pkgIDBytes;
-	std::string pkgID;
-	FILE* pkgFile;
-	// Getting all packages
-	for (const auto& entry : std::filesystem::directory_iterator(packagesPath))
-	{
-		path = entry.path().string();
-		status = fopen_s(&pkgFile, path.c_str(), "rb");
-		if (status)
-		{
-			std::cerr << "FAILED GETTING PACKAGES FOR H64 ERR1515";
-			exit(status);
-		}
-		fseek(pkgFile, 0x10, SEEK_SET);
-		fread((char*)&pkgIDBytes, 1, 2, pkgFile);
-		pkgID = uint16ToHexStr(pkgIDBytes);
-		pkgIDs.insert(pkgID);
-		fclose(pkgFile);
-	}
-	for (auto& pkgID : pkgIDs)
-	{
-		Package pkg = Package(pkgID, packagesPath);
-		status = fopen_s(&pkgFile, pkg.packagePath.c_str(), "rb");
-		if (status)
-		{
-			std::cerr << "FAILED GETTING PACKAGES FOR H64 ERR5632";
-			exit(status);
-		}
-		// Hash64 Table
-		uint32_t hash64TableCount;
-		uint32_t hash64TableOffset;
-		fseek(pkgFile, 0xB8, SEEK_SET);
-		fread((char*)&hash64TableCount, 1, 4, pkgFile);
-		if (!hash64TableCount) continue;
-		fread((char*)&hash64TableOffset, 1, 4, pkgFile);
-		hash64TableOffset += 64 + 0x10;
-
-		for (int i = hash64TableOffset; i < hash64TableOffset + hash64TableCount * 0x10; i += 0x10)
-		{
-			uint64_t h64Val;
-			fseek(pkgFile, i, SEEK_SET);
-			fread((char*)&h64Val, 1, 8, pkgFile);
-			uint32_t hVal;
-			fread((char*)&hVal, 1, 4, pkgFile);
-			hash64Table[h64Val] = hVal;
-		}
-		fclose(pkgFile);
-	}
-	return hash64Table;
-}
-
-bool saveH64Table(std::unordered_map<uint64_t, uint32_t> hash64Table)
-{
-	FILE* file;
-	int status = fopen_s(&file, "h64", "wb");
-	if (status)
-	{
-		std::cerr << "FAILED WRITING H64 ERR5157";
-		exit(status);
-	}
-	if (file == NULL) return false;
-	for (auto& element : hash64Table)
-	{
-		fwrite(&element.first, 8, 1, file);
-		fwrite(&element.second, 4, 1, file);
-	}
-	fclose(file);
-	return true;
-}
-
-std::unordered_map<uint64_t, uint32_t> loadH64Table()
-{
-	std::unordered_map<uint64_t, uint32_t> hash64Table;
-	FILE* file;
-	int status = fopen_s(&file, "h64", "rb");
-	if (status)
-	{
-		std::cerr << "FAILED READING H64 ERR1231";
-		exit(status);
-	}
-	uint64_t h64Val;
-	uint32_t hVal;
-	fread(&h64Val, 8, 1, file);
-	size_t read = fread(&hVal, 4, 1, file);
-	hash64Table[h64Val] = hVal;
-	while (read)
-	{
-		fread(&h64Val, 8, 1, file);
-		read = fread(&hVal, 4, 1, file);
-		hash64Table[h64Val] = hVal;
-	}
-	fclose(file);
-	return hash64Table;
-}
-
 // For batch extraction
 std::vector<std::string> Package::getAllFilesGivenRef(std::string reference)
 {
@@ -566,7 +463,7 @@ unsigned char* Package::getBufferFromEntry(Entry entry)
 		fread((char*)&block.size, 1, 4, pkgFile);
 		fread((char*)&block.patchID, 1, 2, pkgFile);
 		fread((char*)&block.bitFlag, 1, 2, pkgFile);
-		fseek(pkgFile, i + 0x20, SEEK_SET);
+		fseek(pkgFile, 0x14, SEEK_CUR);
 		fread((char*)&block.gcmTag, 16, 1, pkgFile);
 		blocks.push_back(block);
 	}
