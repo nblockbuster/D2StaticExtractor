@@ -154,7 +154,9 @@ File::File(std::string x, std::string pkgsPath)
 
 int File::getData()
 {
-	if (hash.substr(hash.length() - 2) != "80" || hash.substr(hash.length() - 4) == "8080") return 0;
+	if (hash.substr(hash.length() - 2) != "80" || hash.substr(hash.length() - 4) == "8080")
+		if (hash.substr(hash.length() - 2) != "81")
+			return 0;
 
 	pkgID = getPkgID(hash);
 	Package pkg(pkgID, packagesPath);

@@ -58,6 +58,12 @@ int main(int argc, char* argv[])
 #pragma endregion
 	if (modelHash != "")
 	{
+		if (getReferenceFromHash(modelHash, packagesPath) != "a7718080")
+		{
+			std::cout << "Not a valid model hash.\n";
+			exit(120);
+		}
+
 		hash = modelHash;
 		int fileSize;
 		fileSize = getFile();
@@ -164,13 +170,13 @@ int main(int argc, char* argv[])
 			submeshes = temp_submeshes;
 		}
 
-		FbxNode* orignode;
 		for (int p = 0; p < submeshes.size(); p++)
 		{
+			FbxNode* node;
 			submeshes[p]->name = modelHash + "_" + std::to_string(p);
-			orignode = fbxModel->addSubmeshToFbx(submeshes[p]);
-			orignode->SetName(submeshes[p]->name.c_str());
-			nodes.push_back(orignode);
+			node = fbxModel->addSubmeshToFbx(submeshes[p]);
+			node->SetName(submeshes[p]->name.c_str());
+			nodes.push_back(node);
 			submeshes[p]->clear();
 			free(submeshes[p]);
 		}
@@ -183,10 +189,290 @@ int main(int argc, char* argv[])
 		return true;
 	}
 
-	/*else if (BubbleHash != "") 
+	else if (BubbleHash != "")
 	{
+		/*if (getReferenceFromHash(BubbleHash, packagesPath) != "a7718080")
+		{
+			std::cout << "Not a valid model hash.\n";
+			exit(120);
+		}*/
 
-	}*/
+		hash = BubbleHash;
+		int fileSize;
+		fileSize = getFile();
+		unsigned char* lzdata = data;
+		uint32_t posTableOff, modelCount, tableOffset, posCount, posLookupTable, posLookupCount, val;
+
+		memcpy((char*)&posTableOff, lzdata + 0x30, 4);
+		memcpy((char*)&modelCount, lzdata + 0x58, 4);
+		memcpy((char*)&tableOffset, lzdata + 0x60, 4);
+		memcpy((char*)&posCount, lzdata + 0x38, 4);
+		memcpy((char*)&posLookupTable, lzdata + 0x70, 4);
+		posTableOff += 0x40;
+		tableOffset += 0x70;
+		posLookupTable += 0x70;
+		memcpy((char*)&posLookupCount, lzdata + posLookupTable, 4);
+		posLookupTable += 0x10;
+
+		memcpy((char*)&val, lzdata + posTableOff + 8, 4);
+		/*if (val != 0x80806D40)
+		{
+			posTableOff += 0x20;
+		}
+		memcpy((char*)&posCount, lzdata + posTableOff, 4);
+		posTableOff += 0x10;*/
+
+		std::vector<LookupTable> LUTS;
+		std::vector<Vector4> Rotation;
+		std::vector<Vector4> Translation;
+
+		float quatx, quaty, quatz, quatw, fx, fy, fz, lzscale;
+		int l = 0;
+		for (int p = posTableOff; p < posTableOff + (posCount * 48); p += 0x20) {
+			memcpy((char*)&quatx, lzdata + p, 4);
+			memcpy((char*)&quaty, lzdata + p + 4, 4);
+			memcpy((char*)&quatz, lzdata + p + 8, 4);
+			memcpy((char*)&quatw, lzdata + p + 0xC, 4);
+			p += 0x10;
+			memcpy((void*)&fx, lzdata + p, 4);
+			memcpy((void*)&fy, lzdata + p + 4, 4);
+			memcpy((void*)&fz, lzdata + p + 8, 4);
+			memcpy((void*)&lzscale, lzdata + p + 0xC, 4);
+			quaty *= -1;
+			quatz *= -1;
+			quatw *= -1;
+			fx *= -1;
+			Rotation.push_back({ quatx, quaty, quatz, quatw });
+			Translation.push_back({ fx, fy, fz, lzscale });
+			l += 1;
+		}
+		for (int o = posLookupTable; o < posLookupTable + (posLookupCount * 8); o += 0x8)
+		{
+			LookupTable LUT;
+			memcpy((char*)&LUT.EntryA, lzdata + o, 2);
+			memcpy((char*)&LUT.EntryB, lzdata + o + 2, 2);
+			memcpy((char*)&LUT.EntryC, lzdata + o + 4, 2);
+			memcpy((char*)&LUT.EntryD, lzdata + o + 6, 2);
+			LUTS.push_back(LUT);
+		}
+		int ab = 0;
+		fs::create_directories(outputPath + "/" + BubbleHash);
+		std::vector<std::string> modelHashes;
+		for (int j = tableOffset; j < tableOffset + (modelCount * 4); j += 4)
+		{
+			memcpy((char*)&val, lzdata + j, 4);
+			modelHashes.push_back(uint32ToHexStr(val));
+		}
+		delete[] lzdata;
+		std::string mainModelHash;
+		int m;
+		for (int a = 0; a < modelHashes.size(); a++)
+		{
+			mainModelHash = modelHashes.at(a);
+			std::cout << mainModelHash << "\n";
+			m = LUTS[LUTS[a].EntryC].EntryB;
+			std::cout << std::to_string(a) << "\n";
+			int aaablr = Translation.size() - (m - 1);
+			FbxNode* orignode = FbxNode::Create(fbxModel->manager, "");
+			while (m < (LUTS[LUTS[a].EntryC].EntryB + LUTS[LUTS[a].EntryC].EntryA)) {
+				if (orignode->GetMesh()) {
+					std::string name = orignode->GetName();
+					name = name.substr(0, name.find_last_of('_') + 1);
+					name += std::to_string(ab);
+					FbxNode* node = FbxNode::Create(fbxModel->manager, name.c_str());
+					node->SetNodeAttribute(orignode->GetMesh());
+					node->SetName(name.c_str());
+					double loadscale = Translation.at(m).w * 100;
+					node->LclScaling.Set(FbxDouble3(loadscale));
+					node->LclTranslation.Set(FbxDouble3(Translation.at(m).x * 100, Translation.at(m).z * 100, Translation.at(m).y * 100));
+					FbxQuaternion fq = FbxQuaternion(Rotation.at(m).x, Rotation.at(m).z, Rotation.at(m).y, Rotation.at(m).w);
+					FbxVector4 fe2;
+					fe2.SetXYZ(fq);
+					node->LclRotation.Set(fe2);
+					std::cout << "(Instanced) " + name << "\n";
+					std::cout << "(Instanced) X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).z * 100) + " Z: " + to_str(Translation.at(m).y * 100) + " Scale: " + to_str(Translation.at(m).w * 100) << "\n";
+					std::cout << "(Instanced) X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).z) + " Z Rot: " + to_str(Rotation.at(m).y) + " W Rot: " + to_str(Rotation.at(m).w) << "\n";
+					nodes.push_back(node);
+					ab++;
+					m++;
+					submeshes.clear();
+					continue;
+				}
+				Vector3 pos_off;
+				int fileSize;
+				hash = mainModelHash;
+				fileSize = getFile();
+				unsigned char* mmdata = data;
+
+				uint32_t sfHash;
+				memcpy((char*)&sfHash, mmdata + 0x8, 4);
+
+				float scale;
+				memcpy((void*)&scale, mmdata + 0x3C, 4);
+
+				float x_off, y_off, z_off;
+				memcpy((char*)&x_off, data + 0x50, 4);
+				memcpy((char*)&y_off, data + 0x54, 4);
+				memcpy((char*)&z_off, data + 0x58, 4);
+				pos_off.x = x_off;
+				pos_off.y = y_off;
+				pos_off.z = z_off;
+
+				delete[] data;
+
+				hash = uint32ToHexStr(sfHash);
+				fileSize = getFile();
+				unsigned char* sbdata = data;
+
+				/*float TXCoord_ScaleX, TXCoord_ScaleY, TXCoord_OffsetX, TXCoord_OffsetY;
+				memcpy((char*)&TXCoord_ScaleX, data + 0x48, 4);
+				memcpy((char*)&TXCoord_ScaleY, data + 0x50, 4);
+				memcpy((char*)&TXCoord_OffsetX, data + 0x54, 4);
+				memcpy((char*)&TXCoord_OffsetY, data + 0x58, 4);
+				submesh->scales.x = TXCoord_ScaleX;
+				submesh->scales.y = TXCoord_ScaleY;
+				submesh->offset.x = TXCoord_OffsetX;
+				submesh->offset.y = TXCoord_OffsetY;*/
+
+				uint32_t bufferOff;
+				memcpy((char*)&bufferOff, data + 0x30, 4);
+				bufferOff += 0x30;
+
+				uint32_t bufferCount = 0;
+				memcpy((char*)&bufferCount, sbdata + bufferOff, 4);
+				bufferOff += 0x10;
+				for (int i = bufferOff; i < bufferOff + bufferCount * 0x10; i += 0x10)
+				{
+					Submesh* sub = new Submesh;
+
+					uint32_t val;
+					memcpy((char*)&val, sbdata + i, 4);
+					if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80" || "81") break;
+
+					IndexBufferHeader* ibHeader = new IndexBufferHeader(uint32ToHexStr(val), packagesPath);
+
+					memcpy((char*)&val, sbdata + i + 4, 4);
+					if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80" || "81") break;
+
+					VertexBufferHeader* vbHeader = new VertexBufferHeader(uint32ToHexStr(val), packagesPath, sub);
+
+					memcpy((char*)&val, sbdata + i + 12, 4);
+					sub->someValue = val;
+
+
+					vbHeader->vertexBuffer->parseVertPos();
+					ibHeader->indexBuffer->getFaces(sub);
+
+					transformPos(sub, scale, pos_off);
+
+					submeshes.push_back(sub);
+				}
+
+				if (lodCulling)
+				{
+					uint32_t amountLOD, lodTableOffset;
+					memcpy((char*)&lodTableOffset, sbdata + 0x20, 4);
+					lodTableOffset += 0x20;
+					memcpy((char*)&amountLOD, sbdata + lodTableOffset, 4);
+					lodTableOffset += 0x10;
+					for (int o = lodTableOffset; o < lodTableOffset + (amountLOD * 12); o += 12) {
+						LODSplit split;
+						memcpy((char*)&split.IndexOffset, sbdata + o, 4);
+						memcpy((char*)&split.IndexCount, sbdata + o + 4, 4);
+						memcpy((char*)&split.submeshIndex, sbdata + o + 0x8, 1);
+						memcpy((char*)&split.DetailLevel, sbdata + o + 0xA, 1);
+						if (split.DetailLevel == 1)
+							submesh->lodsplit.push_back(split);
+						else
+							continue;
+					}
+					std::vector<Submesh*> temp_submeshes;
+					for (const auto& split : submesh->lodsplit) {
+						Submesh* cursub = submeshes[split.submeshIndex];
+						if (!cursub->faces.size() || !cursub->vertPos.size())
+							break;
+						Submesh* newsub = new Submesh;
+						if (split.IndexOffset + split.IndexCount > cursub->faces.size())
+							continue;
+						for (int i = split.IndexOffset; i < split.IndexOffset + split.IndexCount; i++) {
+							newsub->faces.push_back(cursub->faces[i / 3]);
+						}
+						std::set<int> dsort;
+						for (auto& face : newsub->faces)
+						{
+							for (auto& f : face)
+							{
+								dsort.insert(f);
+							}
+						}
+						if (!dsort.size()) {
+							dsort.clear();
+							continue;
+						}
+						std::unordered_map<int, int> d;
+						int i = 0;
+						for (auto& val : dsort)
+						{
+							d[val] = i;
+							i++;
+						}
+						for (auto& face : newsub->faces)
+						{
+							for (auto& f : face)
+							{
+								f = d[f];
+							}
+						}
+						newsub->vertPos = trimVertsData(cursub->vertPos, dsort, false);
+						if (cursub->vertUV.size()) newsub->vertUV = trimVertsData(cursub->vertUV, dsort, false);
+						if (cursub->vertNorm.size()) newsub->vertNorm = trimVertsData(cursub->vertNorm, dsort, false);
+						if (cursub->vertCol.size()) newsub->vertCol = trimVertsData(cursub->vertCol, dsort, true);
+						if (cursub->vertColSlots.size()) newsub->vertColSlots = cursub->vertColSlots;
+						temp_submeshes.push_back(newsub);
+						dsort.clear();
+						d.clear();
+					}
+					submeshes.clear();
+					submeshes = temp_submeshes;
+				}
+
+				for (int p = 0; p < submeshes.size(); p++)
+				{
+					submeshes[p]->name = mainModelHash + "_" + std::to_string(p);
+					orignode = fbxModel->addSubmeshToFbx(submeshes[p]);
+					orignode->SetName(submeshes[p]->name.c_str());
+					double loadscale = Translation.at(m).w * 100;
+					orignode->LclScaling.Set(FbxDouble3(loadscale));
+					orignode->LclTranslation.Set(FbxDouble3(Translation.at(m).x * 100, Translation.at(m).z * 100, Translation.at(m).y * 100));
+					FbxQuaternion fq = FbxQuaternion(Rotation.at(m).x, Rotation.at(m).z, Rotation.at(m).y, Rotation.at(m).w);
+					FbxVector4 fe2;
+					fe2.SetXYZ(fq);
+					orignode->LclRotation.Set(fe2);
+					std::cout << "X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).z * 100) + " Z: " + to_str(Translation.at(m).y * 100) + " Scale: " + to_str(Translation.at(m).w * 100) << "\n";
+					std::cout << "X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).z) + " Z Rot: " + to_str(Rotation.at(m).y) + " W Rot: " + to_str(Rotation.at(m).w) << "\n";
+					nodes.push_back(orignode);
+					submeshes[p]->clear();
+					free(submeshes[p]);
+				}
+				ab++;
+				m++;
+			}
+			submeshes.clear();
+			submesh->clear();
+			m = 0;
+			ab = 0;
+		}
+		std::string fbxpath = outputPath + "/" + BubbleHash + "/" + BubbleHash + ".fbx";
+		std::string bubbleName = "STA_" + BubbleHash;
+		FbxNode* master_map_empty = fbxModel->scene->GetRootNode()->Create(fbxModel->manager, bubbleName.c_str());
+		master_map_empty->SetNodeAttribute(nullptr);
+		for (auto& node : nodes) { master_map_empty->AddChild(node); }// applyMaterial(fbxModel, submesh, node); }
+		fbxModel->scene->GetRootNode()->AddChild(master_map_empty);
+		fbxModel->save(fbxpath, false);
+		nodes.clear();
+		fbxModel->scene->Clear();
+		return true;
+	}
 }
 
 //ignore this, only valid for postbl
