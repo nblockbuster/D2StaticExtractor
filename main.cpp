@@ -56,146 +56,14 @@ int main(int argc, char* argv[])
 		show_usage();
 	packagesPath = pkgsPath;
 #pragma endregion
-	if (modelHash != "")
+
+	if (BubbleHash != "")
 	{
-		if (getReferenceFromHash(modelHash, packagesPath) != "a7718080")
+		if (getReferenceFromHash(BubbleHash, packagesPath) != "6d968080")
 		{
-			std::cout << "Not a valid model hash.\n";
-			exit(120);
+			std::cout << "Not a valid lz hash.\n";
+			exit(160);
 		}
-
-		hash = modelHash;
-		int fileSize;
-		fileSize = getFile();
-		unsigned char* mmdata = data;
-		uint32_t sfHash;
-		memcpy((char*)&sfHash, mmdata + 0x8, 4);
-		float scale;
-		memcpy((void*)&scale, mmdata + 0x3C, 4);
-
-		delete[] data;
-
-		hash = uint32ToHexStr(sfHash);
-		fileSize = getFile();
-		unsigned char* sbdata = data;
-		uint32_t bufferOff;
-		memcpy((char*)&bufferOff, data + 0x30, 4);
-		bufferOff += 0x30;
-		uint32_t bufferCount = 0;
-		memcpy((char*)&bufferCount, sbdata + bufferOff, 4);
-		bufferOff += 0x10;
-		for (int i = bufferOff; i < bufferOff + bufferCount * 0x10; i += 0x10)
-		{
-			Submesh* sub = new Submesh;
-
-			uint32_t val;
-			memcpy((char*)&val, sbdata + i, 4);
-
-			IndexBufferHeader* ibHeader = new IndexBufferHeader(uint32ToHexStr(val), packagesPath);
-			ibHeader->indexBuffer->getFaces(sub);
-
-			memcpy((char*)&val, sbdata + i + 4, 4);
-			VertexBufferHeader* vbHeader = new VertexBufferHeader(uint32ToHexStr(val), packagesPath, sub);
-			vbHeader->vertexBuffer->parseVertPos();
-			transformPos(sub, scale, Vector3());
-			memcpy((char*)&val, sbdata + i + 12, 4);
-			sub->someValue = val;
-
-			submeshes.push_back(sub);
-		}
-
-		if (lodCulling)
-		{
-			uint32_t amountLOD, lodTableOffset;
-			memcpy((char*)&lodTableOffset, sbdata + 0x20, 4);
-			lodTableOffset += 0x20;
-			memcpy((char*)&amountLOD, sbdata + lodTableOffset, 4);
-			lodTableOffset += 0x10;
-			for (int o = lodTableOffset; o < lodTableOffset + (amountLOD * 12); o += 12) {
-				LODSplit split;
-				memcpy((char*)&split.IndexOffset, sbdata + o, 4);
-				memcpy((char*)&split.IndexCount, sbdata + o + 4, 4);
-				memcpy((char*)&split.submeshIndex, sbdata + o + 0x8, 1);
-				memcpy((char*)&split.DetailLevel, sbdata + o + 0xA, 1);
-				if (split.DetailLevel == 1)
-					submesh->lodsplit.push_back(split);
-				else
-					continue;
-			}
-			std::vector<Submesh*> temp_submeshes;
-			for (const auto& split : submesh->lodsplit) {
-				Submesh* cursub = submeshes[split.submeshIndex];
-				if (!cursub->faces.size() || !cursub->vertPos.size())
-					break;
-				Submesh* newsub = new Submesh();
-				for (int i = split.IndexOffset; i < split.IndexOffset + split.IndexCount; i++) {
-					newsub->faces.push_back(cursub->faces[i / 3]);
-				}
-				std::set<int> dsort;
-				for (auto& face : newsub->faces)
-				{
-					for (auto& f : face)
-					{
-						dsort.insert(f);
-					}
-				}
-				if (!dsort.size()) {
-					dsort.clear();
-					continue;
-				}
-				std::unordered_map<int, int> d;
-				int i = 0;
-				for (auto& val : dsort)
-				{
-					d[val] = i;
-					i++;
-				}
-				for (auto& face : newsub->faces)
-				{
-					for (auto& f : face)
-					{
-						f = d[f];
-					}
-				}
-				newsub->vertPos = trimVertsData(cursub->vertPos, dsort, false);
-				if (cursub->vertUV.size()) newsub->vertUV = trimVertsData(cursub->vertUV, dsort, false);
-				if (cursub->vertNorm.size()) newsub->vertNorm = trimVertsData(cursub->vertNorm, dsort, false);
-				if (cursub->vertCol.size()) newsub->vertCol = trimVertsData(cursub->vertCol, dsort, true);
-				if (cursub->vertColSlots.size()) newsub->vertColSlots = cursub->vertColSlots;
-				temp_submeshes.push_back(newsub);
-				dsort.clear();
-				d.clear();
-			}
-			submeshes.clear();
-			submeshes = temp_submeshes;
-		}
-
-		for (int p = 0; p < submeshes.size(); p++)
-		{
-			FbxNode* node;
-			submeshes[p]->name = modelHash + "_" + std::to_string(p);
-			node = fbxModel->addSubmeshToFbx(submeshes[p]);
-			node->SetName(submeshes[p]->name.c_str());
-			nodes.push_back(node);
-			submeshes[p]->clear();
-			free(submeshes[p]);
-		}
-		std::filesystem::create_directories(outputPath);
-		std::string fbxpath = outputPath + "/" + modelHash + ".fbx";
-		for (auto& node : nodes) fbxModel->scene->GetRootNode()->AddChild(node);
-		fbxModel->save(fbxpath, false);
-		nodes.clear();
-		fbxModel->scene->Clear();
-		return true;
-	}
-
-	else if (BubbleHash != "")
-	{
-		/*if (getReferenceFromHash(BubbleHash, packagesPath) != "a7718080")
-		{
-			std::cout << "Not a valid model hash.\n";
-			exit(120);
-		}*/
 
 		hash = BubbleHash;
 		int fileSize;
@@ -208,7 +76,7 @@ int main(int argc, char* argv[])
 		memcpy((char*)&tableOffset, lzdata + 0x60, 4);
 		memcpy((char*)&posCount, lzdata + 0x38, 4);
 		memcpy((char*)&posLookupTable, lzdata + 0x70, 4);
-		posTableOff += 0x40;
+		posTableOff += 0x50;
 		tableOffset += 0x70;
 		posLookupTable += 0x70;
 		memcpy((char*)&posLookupCount, lzdata + posLookupTable, 4);
@@ -282,8 +150,7 @@ int main(int argc, char* argv[])
 					FbxNode* node = FbxNode::Create(fbxModel->manager, name.c_str());
 					node->SetNodeAttribute(orignode->GetMesh());
 					node->SetName(name.c_str());
-					double loadscale = Translation.at(m).w * 100;
-					node->LclScaling.Set(FbxDouble3(loadscale));
+					node->LclScaling.Set(FbxDouble3(Translation.at(m).w * 100));
 					node->LclTranslation.Set(FbxDouble3(Translation.at(m).x * 100, Translation.at(m).z * 100, Translation.at(m).y * 100));
 					FbxQuaternion fq = FbxQuaternion(Rotation.at(m).x, Rotation.at(m).z, Rotation.at(m).y, Rotation.at(m).w);
 					FbxVector4 fe2;
@@ -291,6 +158,7 @@ int main(int argc, char* argv[])
 					node->LclRotation.Set(fe2);
 					std::cout << "(Instanced) " + name << "\n";
 					std::cout << "(Instanced) X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).z * 100) + " Z: " + to_str(Translation.at(m).y * 100) + " Scale: " + to_str(Translation.at(m).w * 100) << "\n";
+					std::cout << "(Instanced) RAW X: " + to_str(Translation.at(m).x) + " RAW Y: " + to_str(Translation.at(m).z) + " RAW Z: " + to_str(Translation.at(m).y) + " RAW Scale: " + to_str(Translation.at(m).w) << "\n";
 					std::cout << "(Instanced) X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).z) + " Z Rot: " + to_str(Rotation.at(m).y) + " W Rot: " + to_str(Rotation.at(m).w) << "\n";
 					nodes.push_back(node);
 					ab++;
@@ -298,7 +166,7 @@ int main(int argc, char* argv[])
 					submeshes.clear();
 					continue;
 				}
-				Vector3 pos_off;
+				Vector4 pos_off;
 				int fileSize;
 				hash = mainModelHash;
 				fileSize = getFile();
@@ -307,32 +175,35 @@ int main(int argc, char* argv[])
 				uint32_t sfHash;
 				memcpy((char*)&sfHash, mmdata + 0x8, 4);
 
-				float scale;
-				memcpy((void*)&scale, mmdata + 0x3C, 4);
+				//float ;
+				//memcpy((void*)&scale, mmdata + 0x3C, 4);
 
-				float x_off, y_off, z_off;
+				float x_off, y_off, z_off, scale;
 				memcpy((char*)&x_off, data + 0x50, 4);
 				memcpy((char*)&y_off, data + 0x54, 4);
 				memcpy((char*)&z_off, data + 0x58, 4);
+				memcpy((char*)&scale, data + 0x5C, 4);
 				pos_off.x = x_off;
 				pos_off.y = y_off;
 				pos_off.z = z_off;
+				pos_off.w = scale;
+				//std::cout << to_str(x_off*scale) << " | " << to_str(y_off* scale) << " | " << to_str(z_off*scale) << " | " << to_str(scale) << "\n";
+
+				float TXCoord_ScaleX, TXCoord_ScaleY, TXCoord_OffsetX, TXCoord_OffsetY;
+				memcpy((char*)&TXCoord_OffsetX, data + 0x60, 4);
+				memcpy((char*)&TXCoord_OffsetY, data + 0x64, 4);
+				memcpy((char*)&TXCoord_ScaleX, data + 0x68, 4);
+				memcpy((char*)&TXCoord_ScaleY, data + 0x6C, 4);
+				submesh->offset.x = TXCoord_OffsetX;
+				submesh->offset.y = TXCoord_OffsetY;
+				submesh->scales.x = TXCoord_ScaleX;
+				submesh->scales.y = TXCoord_ScaleY;
 
 				delete[] data;
 
 				hash = uint32ToHexStr(sfHash);
 				fileSize = getFile();
 				unsigned char* sbdata = data;
-
-				/*float TXCoord_ScaleX, TXCoord_ScaleY, TXCoord_OffsetX, TXCoord_OffsetY;
-				memcpy((char*)&TXCoord_ScaleX, data + 0x48, 4);
-				memcpy((char*)&TXCoord_ScaleY, data + 0x50, 4);
-				memcpy((char*)&TXCoord_OffsetX, data + 0x54, 4);
-				memcpy((char*)&TXCoord_OffsetY, data + 0x58, 4);
-				submesh->scales.x = TXCoord_ScaleX;
-				submesh->scales.y = TXCoord_ScaleY;
-				submesh->offset.x = TXCoord_OffsetX;
-				submesh->offset.y = TXCoord_OffsetY;*/
 
 				uint32_t bufferOff;
 				memcpy((char*)&bufferOff, data + 0x30, 4);
@@ -347,12 +218,12 @@ int main(int argc, char* argv[])
 
 					uint32_t val;
 					memcpy((char*)&val, sbdata + i, 4);
-					if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80" || "81") break;
+					//if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80" || "81") break;
 
 					IndexBufferHeader* ibHeader = new IndexBufferHeader(uint32ToHexStr(val), packagesPath);
 
 					memcpy((char*)&val, sbdata + i + 4, 4);
-					if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80" || "81") break;
+					//if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80" || "81") break;
 
 					VertexBufferHeader* vbHeader = new VertexBufferHeader(uint32ToHexStr(val), packagesPath, sub);
 
@@ -363,25 +234,31 @@ int main(int argc, char* argv[])
 					vbHeader->vertexBuffer->parseVertPos();
 					ibHeader->indexBuffer->getFaces(sub);
 
-					transformPos(sub, scale, pos_off);
+					transformPos(sub, pos_off);
+
+					if (!sub->vertPos.size() || !sub->faces.size())
+						continue;
 
 					submeshes.push_back(sub);
 				}
 
 				if (lodCulling)
 				{
+					if (!submeshes.size())
+						break;
 					uint32_t amountLOD, lodTableOffset;
 					memcpy((char*)&lodTableOffset, sbdata + 0x20, 4);
 					lodTableOffset += 0x20;
 					memcpy((char*)&amountLOD, sbdata + lodTableOffset, 4);
 					lodTableOffset += 0x10;
+					submesh->lodsplit.clear();
 					for (int o = lodTableOffset; o < lodTableOffset + (amountLOD * 12); o += 12) {
 						LODSplit split;
 						memcpy((char*)&split.IndexOffset, sbdata + o, 4);
 						memcpy((char*)&split.IndexCount, sbdata + o + 4, 4);
 						memcpy((char*)&split.submeshIndex, sbdata + o + 0x8, 1);
 						memcpy((char*)&split.DetailLevel, sbdata + o + 0xA, 1);
-						if (split.DetailLevel == 1)
+						if (split.DetailLevel == 1 || split.DetailLevel == 0xA)
 							submesh->lodsplit.push_back(split);
 						else
 							continue;
@@ -390,10 +267,10 @@ int main(int argc, char* argv[])
 					for (const auto& split : submesh->lodsplit) {
 						Submesh* cursub = submeshes[split.submeshIndex];
 						if (!cursub->faces.size() || !cursub->vertPos.size())
-							break;
-						Submesh* newsub = new Submesh;
-						if (split.IndexOffset + split.IndexCount > cursub->faces.size())
 							continue;
+						Submesh* newsub = new Submesh;
+						//if (split.IndexOffset + split.IndexCount > cursub->faces.size())
+							//continue;
 						for (int i = split.IndexOffset; i < split.IndexOffset + split.IndexCount; i++) {
 							newsub->faces.push_back(cursub->faces[i / 3]);
 						}
@@ -441,13 +318,13 @@ int main(int argc, char* argv[])
 					submeshes[p]->name = mainModelHash + "_" + std::to_string(p);
 					orignode = fbxModel->addSubmeshToFbx(submeshes[p]);
 					orignode->SetName(submeshes[p]->name.c_str());
-					double loadscale = Translation.at(m).w * 100;
-					orignode->LclScaling.Set(FbxDouble3(loadscale));
+					orignode->LclScaling.Set(FbxDouble3(Translation.at(m).w * 100));
 					orignode->LclTranslation.Set(FbxDouble3(Translation.at(m).x * 100, Translation.at(m).z * 100, Translation.at(m).y * 100));
 					FbxQuaternion fq = FbxQuaternion(Rotation.at(m).x, Rotation.at(m).z, Rotation.at(m).y, Rotation.at(m).w);
 					FbxVector4 fe2;
 					fe2.SetXYZ(fq);
 					orignode->LclRotation.Set(fe2);
+					std::cout << "TRANSLATION TABLE LOOKUP: " + std::to_string(m) << '\n';
 					std::cout << "X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).z * 100) + " Z: " + to_str(Translation.at(m).y * 100) + " Scale: " + to_str(Translation.at(m).w * 100) << "\n";
 					std::cout << "X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).z) + " Z Rot: " + to_str(Rotation.at(m).y) + " W Rot: " + to_str(Rotation.at(m).w) << "\n";
 					nodes.push_back(orignode);
@@ -916,13 +793,13 @@ void transformUV(Submesh* sub)
 	}
 }
 
-void transformPos(Submesh* sub, float scale, Vector3 pos_off)
+void transformPos(Submesh* sub, Vector4 pos_off)
 {
 	for (auto& vert : sub->vertPos)
 	{
-		vert[0] *= scale + pos_off.x;
-		vert[1] *= scale + pos_off.y;
-		vert[2] *= scale + pos_off.z;
+		vert[0] *= pos_off.w + pos_off.x;
+		vert[1] *= pos_off.w + pos_off.z;
+		vert[2] *= pos_off.w + pos_off.y;
 
 		//for (int i = 0; i < 3; i++)
 		//{

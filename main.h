@@ -31,7 +31,7 @@ struct LookupTable
 };
 
 void transformUV(Submesh* sub);
-void transformPos(Submesh* sub, float scale, Vector3 pos_off);
+void transformPos(Submesh* sub, Vector4 pos_off);
 
 std::vector<std::vector<float_t>> trimVertsData(std::vector<std::vector<float_t>> verts, std::set<int> dsort, bool bVertCol);
 bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, bool bTextures, std::string texTypeIn, std::unordered_map<uint64_t, uint32_t> hash64Table);
