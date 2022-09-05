@@ -19,7 +19,13 @@ static void show_usage()
 
 int main(int argc, char* argv[])
 {
-	logger = Logger(ELoggerLevels::Debug);
+	ELoggerLevels LoggerLevel = ELoggerLevels::Info;
+
+#if !defined(NDEBUG)
+	LoggerLevel = ELoggerLevels::Debug;
+#endif
+
+	logger = Logger(LoggerLevel);
 
 #pragma region Sarge
 	Sarge sarge;

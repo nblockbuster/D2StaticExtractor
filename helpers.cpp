@@ -131,12 +131,10 @@ std::string Logger::currentDateTime() {
 }
 void Logger::Debug(std::string message)
 {
-	//if (LoggerLevel < 4)
-		//return;
-#if !defined(NDEBUG)
+	if (LoggerLevel < 4)
+		return;
 	std::string curdatetime = currentDateTime();
 	std::cout << curdatetime << " [DEBUG] " + message << "\n";
-#endif
 }
 void Logger::Info(std::string message)
 {
