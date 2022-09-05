@@ -19,7 +19,7 @@ static void show_usage()
 
 int main(int argc, char* argv[])
 {
-	logger = Logger(ELoggerLevels::Info);
+	logger = Logger(ELoggerLevels::Debug);
 
 #pragma region Sarge
 	Sarge sarge;
