@@ -18,9 +18,9 @@
 #include "package.h"
 #include <cmath>
 #include "dxgiformat.h"
+#include <time.h>
 
 std::string getReferenceFromHash(std::string hash, std::string pkgsPath);
-std::string getHash64(uint64_t hash64, std::unordered_map<uint64_t, uint32_t> hash64Table);
 std::string getPkgID(std::string hash);
 uint16_t getPkgID(uint32_t hash);
 
@@ -37,10 +37,6 @@ std::string getPkgID(std::string hash);
 uint16_t getPkgID(uint32_t hash);
 
 std::string getFileFromHash(std::string hsh);
-std::string load3(const std::string& path);
-
-void filePutContents(const std::string& name, const std::string& content);
-
 std::string to_str(double a_value);
 
 struct Vector2
@@ -117,4 +113,29 @@ private:
 
 public:
 	Header(std::string x, std::string pkgsPath) : File(x, pkgsPath) {}
+};
+
+
+enum ELoggerLevels
+{
+	Off = 0,
+	Error = 1,
+	Warn = 2,
+	Info = 3,
+	Debug = 4
+};
+
+class Logger
+{
+public:
+	Logger(ELoggerLevels logLevel) { LoggerLevel = logLevel; }
+	Logger() {}
+
+	ELoggerLevels LoggerLevel = ELoggerLevels::Info;
+
+	void Debug(std::string message);
+	void Info(std::string message);
+	void Warning(std::string message);
+	void Error(std::string message);
+	std::string currentDateTime();
 };

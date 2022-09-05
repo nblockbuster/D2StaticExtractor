@@ -7,6 +7,8 @@
 #include <sarge.cpp>
 //#include <thread>
 
+Logger logger;
+
 unsigned char* data = nullptr;
 std::string hash = "";
 std::string pkgID = "";

@@ -19,6 +19,8 @@ static void show_usage()
 
 int main(int argc, char* argv[])
 {
+	logger = Logger(ELoggerLevels::Info);
+
 #pragma region Sarge
 	Sarge sarge;
 	sarge.setArgument("p", "pkgspath", "pkgs path", true);
@@ -33,7 +35,7 @@ int main(int argc, char* argv[])
 	sarge.setUsage("D2StaicExtractor");
 	if (!sarge.parseArguments(argc, argv))
 	{
-		std::cerr << "Couldn't parse arguments..." << std::endl;
+		logger.Error("Couldn't parse arguments...");
 		show_usage();
 		return 1;
 	}
@@ -61,7 +63,7 @@ int main(int argc, char* argv[])
 	{
 		if (getReferenceFromHash(BubbleHash, packagesPath) != "548a8080")
 		{
-			std::cout << "Not a valid bubble hash.\n";
+			logger.Error("Not a valid bubble hash.\n");
 			exit(160);
 		}
 
@@ -93,7 +95,7 @@ int main(int argc, char* argv[])
 		for (const auto& pbhash : AllPointerHashes)
 		{
 			if (getReferenceFromHash(pbhash, packagesPath) != "d6998080") continue;
-			std::cout << pbhash << '\n';
+			logger.Debug(pbhash);
 			uint32_t pos_or_empty_count;
 			hash = pbhash;
 			int fileSize;
@@ -128,24 +130,25 @@ int main(int argc, char* argv[])
 			memcpy((char*)&val, pbdata + end + 0x4, 4);
 			if (val != 0x808071B3)
 			{
-				std::cout << "I dont know what to do here.\n";
+				logger.Debug("I dont know what to do here.");
 				continue;
 			}
 			else
 			{
 				memcpy((char*)&val, pbdata + end + 0x18, 4);
-				if (val < 0x80800000) std::cout << "I also dont know what to do here.\n"; //just incase the hash just doesnt
+				if (val < 0x80800000)
+					logger.Debug("I also dont know what to do here."); //just incase the hash just doesnt
 				else
 				{
 					memcpy((char*)&val, pbdata + end + 0x18, 4);
 					std::string StaticLZPointerHash = uint32ToHexStr(val);
-					std::cout << "---- " + StaticLZPointerHash << "\n";
+					logger.Debug("---- " + StaticLZPointerHash);
 					hash = StaticLZPointerHash;
 					int fileSize;
 					fileSize = getFile();
 					memcpy((char*)&val, data + 0x8, 4);
 					if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80") break;
-					std::cout << "-------- " + uint32ToHexStr(val) << "\n";
+					logger.Debug("-------- " + uint32ToHexStr(val));
 					StaticLZs.push_back(uint32ToHexStr(val));
 				}
 			}
@@ -179,7 +182,7 @@ int main(int argc, char* argv[])
 		dynamic_point_model->scene->Clear();
 		dynamic_point_model->manager->Destroy();
 
-		if (!StaticLZs.size()) { std::cout << "Static Loadzones Empty.\n"; exit(22); }
+		if (!StaticLZs.size()) { logger.Error("Static Loadzones Empty."); exit(22); }
 		for (const auto& lz_hash : StaticLZs)
 		{
 			bool result = ExportSingleLoadZone(lz_hash, outputPath + "/" + BubbleHash, false, sarge.exists("texex"), texTypeIn);
@@ -265,9 +268,9 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 	for (int a = 0; a < modelHashes.size(); a++)
 	{
 		mainModelHash = modelHashes.at(a);
-		std::cout << mainModelHash << "\n";
+		logger.Info("Currently Extracting Model " + mainModelHash);
 		m = LUTS[LUTS[a].EntryC].EntryB;
-		std::cout << std::to_string(a) << "\n";
+		logger.Debug(std::to_string(a));
 		int aaablr = Translation.size() - (m - 1);
 		FbxNode* orignode = FbxNode::Create(fbxModel->manager, "");
 		while (m < (LUTS[LUTS[a].EntryC].EntryB + LUTS[LUTS[a].EntryC].EntryA)) {
@@ -284,10 +287,10 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 				FbxVector4 fe2;
 				fe2.SetXYZ(fq);
 				node->LclRotation.Set(fe2);
-				std::cout << "(Instanced) " + name << "\n";
-				std::cout << "(Instanced) X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).z * 100) + " Z: " + to_str(Translation.at(m).y * 100) + " Scale: " + to_str(Translation.at(m).w * 100) << "\n";
-				std::cout << "(Instanced) RAW X: " + to_str(Translation.at(m).x) + " RAW Y: " + to_str(Translation.at(m).z) + " RAW Z: " + to_str(Translation.at(m).y) + " RAW Scale: " + to_str(Translation.at(m).w) << "\n";
-				std::cout << "(Instanced) X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).z) + " Z Rot: " + to_str(Rotation.at(m).y) + " W Rot: " + to_str(Rotation.at(m).w) << "\n";
+				logger.Debug("(Instanced) " + name);
+				logger.Debug("(Instanced) X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).z * 100) + " Z: " + to_str(Translation.at(m).y * 100) + " Scale: " + to_str(Translation.at(m).w * 100));
+				logger.Debug("(Instanced) RAW X: " + to_str(Translation.at(m).x) + " RAW Y: " + to_str(Translation.at(m).z) + " RAW Z: " + to_str(Translation.at(m).y) + " RAW Scale: " + to_str(Translation.at(m).w));
+				logger.Debug("(Instanced) X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).z) + " Z Rot: " + to_str(Rotation.at(m).y) + " W Rot: " + to_str(Rotation.at(m).w));
 				nodes.push_back(node);
 				ab++;
 				m++;
@@ -452,9 +455,9 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 				FbxVector4 fe2;
 				fe2.SetXYZ(fq);
 				orignode->LclRotation.Set(fe2);
-				std::cout << "TRANSLATION TABLE LOOKUP: " + std::to_string(m) << '\n';
-				std::cout << "X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).z * 100) + " Z: " + to_str(Translation.at(m).y * 100) + " Scale: " + to_str(Translation.at(m).w * 100) << "\n";
-				std::cout << "X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).z) + " Z Rot: " + to_str(Rotation.at(m).y) + " W Rot: " + to_str(Rotation.at(m).w) << "\n";
+				logger.Debug("TRANSLATION TABLE LOOKUP: " + std::to_string(m));
+				logger.Debug("X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).z * 100) + " Z: " + to_str(Translation.at(m).y * 100) + " Scale: " + to_str(Translation.at(m).w * 100));
+				logger.Debug("X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).z) + " Z Rot: " + to_str(Rotation.at(m).y) + " W Rot: " + to_str(Rotation.at(m).w));
 				nodes.push_back(orignode);
 				submeshes[p]->clear();
 				free(submeshes[p]);
@@ -476,6 +479,7 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 	fbxModel->save(fbxpath, false);
 	nodes.clear();
 	fbxModel->scene->Clear();
+	logger.Info("Extracted loadzone " + lzHash + " from bubble " + outputPath.substr(outputPath.rfind('/')+1));
 	return true;
 }
 

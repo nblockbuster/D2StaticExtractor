@@ -91,53 +91,6 @@ std::string getFileFromHash(std::string hsh)
 	return(first_hex + "-" + second_hex);
 }
 
-std::string load3(const std::string& path) {
-
-	auto close_file = [](FILE* f) {fclose(f); };
-
-#pragma warning(suppress : 4996)
-	auto holder = std::unique_ptr<FILE, decltype(close_file)>(fopen(path.c_str(), "rb"), close_file);
-	if (!holder)
-		return "";
-
-	FILE* f = holder.get();
-
-	// in C++17 following lines can be folded into std::filesystem::file_size invocation
-	int size = std::filesystem::file_size(path);
-
-	std::string res;
-	res.resize(size);
-
-	// C++17 defines .data() which returns a non-const pointer
-	fread(const_cast<char*>(res.data()), 1, size, f);
-
-	return res;
-}
-
-void filePutContents(const std::string& name, const std::string& content) {
-	std::ofstream outfile;
-	outfile.open(name, std::ios_base::app);
-	outfile << content;
-}
-
-std::string getHash64(uint64_t hash64, std::unordered_map<uint64_t, uint32_t> hash64Table)
-{
-	std::string h64 = "";
-	try
-	{
-		h64 = uint32ToHexStr(hash64Table[hash64]);
-		if (h64 == "00000000")
-			throw h64;
-	}
-	catch (std::string err)
-	{
-		std::cerr << "H64 file is out-of-date. Please delete and retry.\n";
-		exit(1);
-	}
-
-	return h64;
-}
-
 std::string to_str(double a_value)
 {
 	double a = a_value;
@@ -164,4 +117,44 @@ int File::getData()
 	data = pkg.getEntryData(hash, fileSize);
 	if (data == nullptr || sizeof(data) == 0) return 0;
 	return fileSize;
+}
+
+std::string Logger::currentDateTime() {
+	time_t now = time(0);
+	struct tm tstruct;
+	char buf[80];
+	localtime_s(&tstruct, &now);
+
+	strftime(buf, sizeof(buf), "%H:%M:%S", &tstruct);
+
+	return buf;
+}
+
+void Logger::Debug(std::string message)
+{
+	if (LoggerLevel < 4)
+		return;
+	std::string curdatetime = currentDateTime();
+	std::cout << curdatetime << " [DEBUG] " + message << "\n";
+}
+void Logger::Info(std::string message)
+{
+	if (LoggerLevel < 3)
+		return;
+	std::string curdatetime = currentDateTime();
+	std::cout << curdatetime << " [INFO] " + message << "\n";
+}
+void Logger::Warning(std::string message)
+{
+	if (LoggerLevel < 2)
+		return;
+	std::string curdatetime = currentDateTime();
+	std::cout << curdatetime << " [WARNING] " + message << "\n";
+}
+void Logger::Error(std::string message)
+{
+	if (LoggerLevel < 1)
+		return;
+	std::string curdatetime = currentDateTime();
+	std::cout << curdatetime << " [ERROR] " + message << "\n";
 }
