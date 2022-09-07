@@ -232,7 +232,7 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 	std::vector<Vector4> Translation;
 
 	float quatx, quaty, quatz, quatw, fx, fy, fz, lzscale;
-	int l = 0;
+	//int l = 0;
 	for (int p = posTableOff; p < posTableOff + (posCount * 48); p += 0x20) {
 		memcpy((char*)&quatx, lzdata + p, 4);
 		memcpy((char*)&quaty, lzdata + p + 4, 4);
@@ -243,13 +243,13 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 		memcpy((void*)&fy, lzdata + p + 4, 4);
 		memcpy((void*)&fz, lzdata + p + 8, 4);
 		memcpy((void*)&lzscale, lzdata + p + 0xC, 4);
-		quaty *= -1;
+		quatx *= -1;
 		quatz *= -1;
 		quatw *= -1;
-		fx *= -1;
+		fy *= -1;
 		Rotation.push_back({ quatx, quaty, quatz, quatw });
-		Translation.push_back({ fx, fy, fz, lzscale });
-		l += 1;
+		Translation.push_back({ fx, fz, fy, lzscale });
+		//l += 1;
 	}
 	for (int o = posLookupTable; o < posLookupTable + (posLookupCount * 8); o += 0x8)
 	{
@@ -288,15 +288,15 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 				node->SetNodeAttribute(orignode->GetMesh());
 				node->SetName(name.c_str());
 				node->LclScaling.Set(FbxDouble3(Translation.at(m).w * 100));
-				node->LclTranslation.Set(FbxDouble3(Translation.at(m).x * 100, Translation.at(m).z * 100, Translation.at(m).y * 100));
-				FbxQuaternion fq = FbxQuaternion(Rotation.at(m).x, Rotation.at(m).z, Rotation.at(m).y, Rotation.at(m).w);
+				node->LclTranslation.Set(FbxDouble3(Translation.at(m).x * 100, Translation.at(m).y * 100, Translation.at(m).z * 100));
+				FbxQuaternion fq = FbxQuaternion(Rotation.at(m).x, Rotation.at(m).y, Rotation.at(m).z, Rotation.at(m).w);
 				FbxVector4 fe2;
 				fe2.SetXYZ(fq);
 				node->LclRotation.Set(fe2);
 				logger.Debug("(Instanced) " + name);
-				logger.Debug("(Instanced) X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).z * 100) + " Z: " + to_str(Translation.at(m).y * 100) + " Scale: " + to_str(Translation.at(m).w * 100));
-				logger.Debug("(Instanced) RAW X: " + to_str(Translation.at(m).x) + " RAW Y: " + to_str(Translation.at(m).z) + " RAW Z: " + to_str(Translation.at(m).y) + " RAW Scale: " + to_str(Translation.at(m).w));
-				logger.Debug("(Instanced) X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).z) + " Z Rot: " + to_str(Rotation.at(m).y) + " W Rot: " + to_str(Rotation.at(m).w));
+				logger.Debug("(Instanced) X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).y * 100) + " Z: " + to_str(Translation.at(m).y * 100) + " Scale: " + to_str(Translation.at(m).w * 100));
+				logger.Debug("(Instanced) RAW X: " + to_str(Translation.at(m).x) + " RAW Y: " + to_str(Translation.at(m).y) + " RAW Z: " + to_str(Translation.at(m).y) + " RAW Scale: " + to_str(Translation.at(m).w));
+				logger.Debug("(Instanced) X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).y) + " Z Rot: " + to_str(Rotation.at(m).y) + " W Rot: " + to_str(Rotation.at(m).w));
 				nodes.push_back(node);
 				ab++;
 				m++;
@@ -456,14 +456,14 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 				orignode = fbxModel->addSubmeshToFbx(submeshes[p]);
 				orignode->SetName(submeshes[p]->name.c_str());
 				orignode->LclScaling.Set(FbxDouble3(Translation.at(m).w * 100));
-				orignode->LclTranslation.Set(FbxDouble3(Translation.at(m).x * 100, Translation.at(m).z * 100, Translation.at(m).y * 100));
-				FbxQuaternion fq = FbxQuaternion(Rotation.at(m).x, Rotation.at(m).z, Rotation.at(m).y, Rotation.at(m).w);
+				orignode->LclTranslation.Set(FbxDouble3(Translation.at(m).x * 100, Translation.at(m).y * 100, Translation.at(m).z * 100));
+				FbxQuaternion fq = FbxQuaternion(Rotation.at(m).x, Rotation.at(m).y, Rotation.at(m).z, Rotation.at(m).w);
 				FbxVector4 fe2;
 				fe2.SetXYZ(fq);
 				orignode->LclRotation.Set(fe2);
 				logger.Debug("TRANSLATION TABLE LOOKUP: " + std::to_string(m));
-				logger.Debug("X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).z * 100) + " Z: " + to_str(Translation.at(m).y * 100) + " Scale: " + to_str(Translation.at(m).w * 100));
-				logger.Debug("X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).z) + " Z Rot: " + to_str(Rotation.at(m).y) + " W Rot: " + to_str(Rotation.at(m).w));
+				logger.Debug("X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).y * 100) + " Z: " + to_str(Translation.at(m).z * 100) + " Scale: " + to_str(Translation.at(m).w * 100));
+				logger.Debug("X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).y) + " Z Rot: " + to_str(Rotation.at(m).z) + " W Rot: " + to_str(Rotation.at(m).w));
 				nodes.push_back(orignode);
 				submeshes[p]->clear();
 				free(submeshes[p]);
@@ -480,8 +480,9 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 	std::string bubbleName = "STA_" + lzHash;
 	FbxNode* master_map_empty = fbxModel->scene->GetRootNode()->Create(fbxModel->manager, bubbleName.c_str());
 	master_map_empty->SetNodeAttribute(nullptr);
-	for (auto& node : nodes) { master_map_empty->AddChild(node); }// applyMaterial(fbxModel, submesh, node); }
-	fbxModel->scene->GetRootNode()->AddChild(master_map_empty);
+	//for (auto& node : nodes) { master_map_empty->AddChild(node); }// applyMaterial(fbxModel, submesh, node); }
+	for (auto& node : nodes) { fbxModel->scene->GetRootNode()->AddChild(node); }
+	//fbxModel->scene->GetRootNode()->AddChild(master_map_empty);
 	fbxModel->save(fbxpath, false);
 	nodes.clear();
 	fbxModel->scene->Clear();
