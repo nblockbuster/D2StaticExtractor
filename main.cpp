@@ -258,13 +258,13 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 	uint16_t lookupVal;
 	//WQ Values
 
-	memcpy((char*)&posTableOff, lzdata + 0x30, 4);
+	memcpy((char*)&posTableOff, lzdata + 0x48, 4);
 	memcpy((char*)&modelCount, lzdata + 0x78, 4);
 	memcpy((char*)&tableOffset, lzdata + 0x80, 4);
 	memcpy((char*)&posLookupTable, lzdata + 0x90, 4);
 	tableOffset += 0x90;
 	posLookupTable += 0x90;
-	posTableOff += 0x40;
+	posTableOff += 0x48;
 	//BL Values
 	if (bl)
 	{
@@ -301,12 +301,12 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 		memcpy((void*)&fy, lzdata + p + 4, 4);
 		memcpy((void*)&fz, lzdata + p + 8, 4);
 		memcpy((void*)&lzscale, lzdata + p + 0xC, 4);
-		quaty *= -1;
+		quatx *= -1;
 		quatz *= -1;
 		quatw *= -1;
-		fx *= -1;
+		fy *= -1;
 		Rotation.push_back({ quatx, quaty, quatz, quatw });
-		Translation.push_back({ fx, fy, fz, lzscale });
+		Translation.push_back({ fx, fz, fy, lzscale });
 		l += 1;
 	}
 	for (int o = posLookupTable; o < posLookupTable + (posLookupCount * 8); o += 0x8)
@@ -347,39 +347,39 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 				node->SetName(name.c_str());
 				double loadscale = Translation.at(m).w * 100;
 				node->LclScaling.Set(FbxDouble3(loadscale));
-				node->LclTranslation.Set(FbxDouble3(Translation.at(m).x * 100, Translation.at(m).z * 100, Translation.at(m).y * 100));
-				FbxQuaternion fq = FbxQuaternion(Rotation.at(m).x, Rotation.at(m).z, Rotation.at(m).y, Rotation.at(m).w);
+				node->LclTranslation.Set(FbxDouble3(Translation.at(m).x * 100, Translation.at(m).y * 100, Translation.at(m).z * 100));
+				FbxQuaternion fq = FbxQuaternion(Rotation.at(m).x, Rotation.at(m).y, Rotation.at(m).z, Rotation.at(m).w);
 				FbxVector4 fe2;
 				fe2.SetXYZ(fq);
 				node->LclRotation.Set(fe2);
 				std::cout << "(Instanced) " + name << "\n";
-				std::cout << "(Instanced) X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).z * 100) + " Z: " + to_str(Translation.at(m).y * 100) + " Scale: " + to_str(Translation.at(m).w * 100) << "\n";
-				std::cout << "(Instanced) X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).z) + " Z Rot: " + to_str(Rotation.at(m).y) + " W Rot: " + to_str(Rotation.at(m).w) << "\n";
+				std::cout << "(Instanced) X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).y * 100) + " Z: " + to_str(Translation.at(m).z * 100) + " Scale: " + to_str(Translation.at(m).w * 100) << "\n";
+				std::cout << "(Instanced) X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).y) + " Z Rot: " + to_str(Rotation.at(m).z) + " W Rot: " + to_str(Rotation.at(m).w) << "\n";
 				nodes.push_back(node);
 				ab++;
 				m++;
 				submeshes.clear();
 				continue;
 			}
-			Vector3 pos_off;
+			Vector4 pos_off;
 			int fileSize;
 			hash = mainModelHash;
 			if (getReferenceFromHash(hash, packagesPath) != "446d8080") break;
 			fileSize = getFile();
+			
 			uint32_t sfhash32;
-			float scale;
 			memcpy((char*)&sfhash32, data + 0x8, 4);
-			//scale here inaccurate!!!
-			memcpy((void*)&scale, data + 0x3C, 4);
 
-			float x_off, y_off, z_off;
+			float x_off, y_off, z_off, scale;
 			memcpy((char*)&x_off, data + 0x50, 4);
 			memcpy((char*)&y_off, data + 0x54, 4);
 			memcpy((char*)&z_off, data + 0x58, 4);
+			memcpy((char*)&scale, data + 0x5C, 4);
 			//needs adjustment!!
 			pos_off.x = x_off;
 			pos_off.y = y_off;
 			pos_off.z = z_off;
+			pos_off.w = scale;
 
 			uint32_t extOff = 0;
 			delete[] data;
@@ -510,13 +510,13 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 				orignode->SetName(submeshes[p]->name.c_str());
 				double loadscale = Translation.at(m).w * 100;
 				orignode->LclScaling.Set(FbxDouble3(loadscale));
-				orignode->LclTranslation.Set(FbxDouble3(Translation.at(m).x * 100, Translation.at(m).z * 100, Translation.at(m).y * 100));
-				FbxQuaternion fq = FbxQuaternion(Rotation.at(m).x, Rotation.at(m).z, Rotation.at(m).y, Rotation.at(m).w);
+				orignode->LclTranslation.Set(FbxDouble3(Translation.at(m).x * 100, Translation.at(m).y * 100, Translation.at(m).z * 100));
+				FbxQuaternion fq = FbxQuaternion(Rotation.at(m).x, Rotation.at(m).y, Rotation.at(m).z, Rotation.at(m).w);
 				FbxVector4 fe2;
 				fe2.SetXYZ(fq);
 				orignode->LclRotation.Set(fe2);
-				std::cout << "X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).z * 100) + " Z: " + to_str(Translation.at(m).y * 100) + " Scale: " + to_str(Translation.at(m).w * 100) << "\n";
-				std::cout << "X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).z) + " Z Rot: " + to_str(Rotation.at(m).y) + " W Rot: " + to_str(Rotation.at(m).w) << "\n";
+				std::cout << "X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).y * 100) + " Z: " + to_str(Translation.at(m).z * 100) + " Scale: " + to_str(Translation.at(m).w * 100) << "\n";
+				std::cout << "X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).y) + " Z Rot: " + to_str(Rotation.at(m).z) + " W Rot: " + to_str(Rotation.at(m).w) << "\n";
 				nodes.push_back(orignode);
 				/*
 				if (bTextures)
@@ -604,8 +604,9 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 	std::string bubbleName = "STA_" + lzHash; //replace with bubble name!!
 	FbxNode* master_map_empty = fbxModel->scene->GetRootNode()->Create(fbxModel->manager, bubbleName.c_str());
 	master_map_empty->SetNodeAttribute(nullptr);
-	for (auto& node : nodes) { master_map_empty->AddChild(node); }// applyMaterial(fbxModel, submesh, node); }
-	fbxModel->scene->GetRootNode()->AddChild(master_map_empty);
+	//for (auto& node : nodes) { master_map_empty->AddChild(node); }// applyMaterial(fbxModel, submesh, node); }
+	for (auto& node : nodes) { fbxModel->scene->GetRootNode()->AddChild(node); }
+	//fbxModel->scene->GetRootNode()->AddChild(master_map_empty);
 	fbxModel->save(fbxpath, false);
 	nodes.clear();
 	fbxModel->scene->Clear();
@@ -680,17 +681,13 @@ void transformUV()
 	}
 }
 
-void transformPos(float scale, Vector3 pos_off)
+void transformPos(float scale, Vector4 pos_off)
 {
 	for (auto& vert : submesh->vertPos)
 	{
-		for (int i = 0; i < 3; i++)
-		{
-			vert[i] = vert[i] * scale;
-		}
-		vert[0] = vert[0] + pos_off.x;
-		//vert[1] = vert[1] + pos_off.y;
-		vert[2] = vert[2] + pos_off.z;
+		vert[0] *= (pos_off.w + pos_off.x);
+		vert[1] *= (pos_off.w + pos_off.z);
+		vert[2] *= (pos_off.w + pos_off.y);
 	}
 }
 
