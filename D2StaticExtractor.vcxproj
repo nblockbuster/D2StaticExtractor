@@ -121,13 +121,13 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;FBXSDK_SHARED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>D:\DestinyUnpackerCPP\Sarge\src;D:\FBX SDK\2020.2.1\include;D:\DestinyUnpackerCPP\boost_1_76_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\vcpkg\packages\imath_x64-windows\include\Imath;D:\DestinyUnpackerCPP\boost_1_76_0;D:\DestinyUnpackerCPP\Sarge\src;D:\FBX SDK\2020.2.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>D:\FBX SDK\2020.2.1\lib\vs2019\x64\debug\libfbxsdk-md.lib;wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>D:\FBX SDK\2020.2.1\lib\vs2019\x64\debug;D:\FBX SDK\2020.2.1\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>D:\FBX SDK\2020.2.1\lib\vs2019\x64\debug\libfbxsdk-md.lib;wininet.lib;Alembic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\vcpkg\packages\alembic_x64-windows\debug\lib;D:\FBX SDK\2020.2.1\lib\vs2019\x64\debug;D:\FBX SDK\2020.2.1\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

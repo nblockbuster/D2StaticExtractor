@@ -5,7 +5,6 @@
 #include "parsers.h"
 #include "dxgiformat.h"
 #include <sarge.cpp>
-//#include <thread>
 
 Logger logger;
 

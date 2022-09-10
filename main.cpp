@@ -6,20 +6,20 @@ namespace fs = std::filesystem;
 
 static void show_usage()
 {
-	std::cerr << "Usage: D2StaticExtractor -p [packages path] -o [output path] -i [input hash] -b [package ID] -f [filetype] -l -t"
+	std::cerr << "Usage: D2StaticExtractor -p <packages path> -o <output path> -d <input bubble hash> -f [texture type] -l -t"
 		<< std::endl;
 	std::cerr << "-i extracts a single main model hash\n";
 	std::cerr << "-b extracts all the static models available for that package ID. (-t is ignored)\n";
-	std::cerr << "-l disables hacky lod culling\n";
+	std::cerr << "-l enables lod culling\n";
 	std::cerr << "-t extracts textures for given model\n";
 	std::cerr << "-f changes the file type that the textures are output to. (default PNG) Valid types:\n";
-	std::cerr << "bmp, jpg/jpeg, png, dds, tga, hdr, tif/tiff, wdp/hdp/jxr, ppm/pfm\n";
+	std::cerr << "bmp, jpg/jpeg, png, dds, tga\n";
 	//Found here, under the file-type list: https://github.com/Microsoft/DirectXTex/wiki/Texconv#optional-switches-description
 }
 
 int main(int argc, char* argv[])
 {
-	ELoggerLevels LoggerLevel = ELoggerLevels::Info;
+	ELoggerLevels LoggerLevel = ELoggerLevels::Debug;
 
 #if !defined(NDEBUG)
 	LoggerLevel = ELoggerLevels::Debug;
@@ -31,11 +31,9 @@ int main(int argc, char* argv[])
 	Sarge sarge;
 	sarge.setArgument("p", "pkgspath", "pkgs path", true);
 	sarge.setArgument("o", "outputpath", "output path", true);
-	sarge.setArgument("i", "inputhash", "hash of mainmodel file", true);
-	sarge.setArgument("b", "batch", "batch with pkg ID", true);
 	sarge.setArgument("l", "lodcull", "disable lod culling", false);
 	sarge.setArgument("t", "texex", "texture extraction", false);
-	sarge.setArgument("f", "filetype", "type to convert to", true);
+	sarge.setArgument("f", "textype", "type to convert textures to", true);
 	sarge.setArgument("d", "bubhash", "bubble pointer hash", true);
 	sarge.setDescription("Destiny 2 static model extractor by nblock.");
 	sarge.setUsage("D2StaicExtractor");
@@ -45,17 +43,15 @@ int main(int argc, char* argv[])
 		show_usage();
 		return 1;
 	}
-	std::string pkgsPath, outputPath, batchPkg;
+	std::string pkgsPath, outputPath;
 	std::string BubbleHash = "";
-	std::string modelHash = "";
 	std::string texTypeIn = "";
 	uint32_t sfhash32;
 	float scale = 1;
 	sarge.getFlag("pkgspath", pkgsPath);
 	sarge.getFlag("outputpath", outputPath);
-	sarge.getFlag("filetype", texTypeIn);
+	sarge.getFlag("textype", texTypeIn);
 	sarge.getFlag("bubhash", BubbleHash);
-	sarge.getFlag("inputhash", modelHash);
 	lodCulling = false;
 	if (sarge.exists("lodcull"))
 		lodCulling = true;
