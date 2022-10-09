@@ -187,15 +187,16 @@ int main(int argc, char* argv[])
 		if (!StaticLZs.size()) { logger.Error("Static Loadzones Empty."); exit(22); }
 		for (const auto& lz_hash : StaticLZs)
 		{
-			bool result = ExportSingleLoadZone(lz_hash, outputPath + "/" + BubbleHash, false, sarge.exists("texex"), texTypeIn);
+			bool result = ExportSingleLoadZone(lz_hash, outputPath + "/" + BubbleHash, sarge.exists("texex"), texTypeIn);
 			if (!result) exit(25);
 		}
 	}
 }
 
-//ignore this, only valid for postbl
-
-bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, bool bTextures, std::string texTypeIn)
+//ignore me, this is (now) valid for prebl
+//im so sorry for this mess
+//this takes the hash of a single static loadzone file and exports it
+bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bTextures, std::string texTypeIn)
 {
 	hash = lzHash;
 	int fileSize;
@@ -291,7 +292,7 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 				node->LclRotation.Set(fe2);
 				logger.Debug("(Instanced) " + name);
 				logger.Debug("(Instanced) X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).y * 100) + " Z: " + to_str(Translation.at(m).y * 100) + " Scale: " + to_str(Translation.at(m).w * 100));
-				logger.Debug("(Instanced) RAW X: " + to_str(Translation.at(m).x) + " RAW Y: " + to_str(Translation.at(m).y) + " RAW Z: " + to_str(Translation.at(m).y) + " RAW Scale: " + to_str(Translation.at(m).w));
+				//logger.Debug("(Instanced) RAW X: " + to_str(Translation.at(m).x) + " RAW Y: " + to_str(Translation.at(m).y) + " RAW Z: " + to_str(Translation.at(m).y) + " RAW Scale: " + to_str(Translation.at(m).w));
 				logger.Debug("(Instanced) X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).y) + " Z Rot: " + to_str(Rotation.at(m).y) + " W Rot: " + to_str(Rotation.at(m).w));
 				nodes.push_back(node);
 				ab++;
@@ -476,9 +477,9 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 	std::string bubbleName = "STA_" + lzHash;
 	FbxNode* master_map_empty = fbxModel->scene->GetRootNode()->Create(fbxModel->manager, bubbleName.c_str());
 	master_map_empty->SetNodeAttribute(nullptr);
-	//for (auto& node : nodes) { master_map_empty->AddChild(node); }// applyMaterial(fbxModel, submesh, node); }
-	for (auto& node : nodes) { fbxModel->scene->GetRootNode()->AddChild(node); }
-	//fbxModel->scene->GetRootNode()->AddChild(master_map_empty);
+	for (auto& node : nodes) { master_map_empty->AddChild(node); }// applyMaterial(fbxModel, submesh, node); }
+	//for (auto& node : nodes) { fbxModel->scene->GetRootNode()->AddChild(node); }
+	fbxModel->scene->GetRootNode()->AddChild(master_map_empty);
 	fbxModel->save(fbxpath, false);
 	nodes.clear();
 	fbxModel->scene->Clear();
@@ -556,6 +557,8 @@ void transformUV(Submesh* sub)
 
 void transformPos(Submesh* sub, Vector4 pos_off)
 {
+	//this isnt correct
+	//i would like to offer my sincerest apologies to the people who had to figure this out in the first place
 	for (auto& vert : sub->vertPos)
 	{
 		vert[0] *= pos_off.w + pos_off.x;
@@ -566,12 +569,19 @@ void transformPos(Submesh* sub, Vector4 pos_off)
 		//{
 		//	vert[i] = vert[i] * scale;
 		//}
-		//modify vert position with pos_off values
+		// 
 		//vert[0] = vert[0] + pos_off.x;
 		//vert[1] = vert[1] + pos_off.y;
-		//vert[2] = vert[2] + pos_off.z;
+		//vert[2] = vert[2] + pos_off.z;	
 	}
 }
+
+//void transformPos(FbxNode* node, Vector4 pos_off, Vector3 eulerRot)
+//{
+//	node->SetGeometricScaling(FbxNode::eSourcePivot, FbxVector4(pos_off.w, pos_off.w, pos_off.w));
+//	node->SetGeometricTranslation(FbxNode::eSourcePivot, FbxVector4(pos_off.x, pos_off.z, pos_off.y));
+//	node->SetGeometricRotation(FbxNode::eSourcePivot, FbxVector4(eulerRot.x, eulerRot.y, eulerRot.z));
+//}
 
 void Submesh::clear()
 {
