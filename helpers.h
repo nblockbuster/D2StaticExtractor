@@ -14,7 +14,6 @@
 #include <string>
 #include <functional>
 #include <algorithm>
-#include <boost/algorithm/string.hpp>
 #include "package.h"
 #include <cmath>
 #include "dxgiformat.h"
@@ -31,8 +30,8 @@ uint32_t swapUInt32Endianness(uint32_t x);
 uint64_t swapUInt64Endianness(uint64_t x);
 uint32_t hexStrToUint16(std::string hash);
 uint32_t hexStrToUint32(std::string hash);
-uint64_t hexStrToUint64(std::string hash); 
-//std::string getReferenceFromHash(std::string hash);
+uint64_t hexStrToUint64(std::string hash);
+// std::string getReferenceFromHash(std::string hash);
 std::string getPkgID(std::string hash);
 uint16_t getPkgID(uint32_t hash);
 
@@ -96,12 +95,11 @@ public:
 class File
 {
 private:
-
 public:
 	File(std::string x, std::string pkgsPath);
 
 	std::string hash = "";
-	unsigned char* data = nullptr;
+	unsigned char *data = nullptr;
 	std::string pkgID = "";
 	std::string packagesPath;
 	int getData();
@@ -110,11 +108,9 @@ public:
 class Header : public File
 {
 private:
-
 public:
 	Header(std::string x, std::string pkgsPath) : File(x, pkgsPath) {}
 };
-
 
 enum ELoggerLevels
 {

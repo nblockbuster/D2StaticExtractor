@@ -122,5 +122,4 @@ static const std::vector<std::string> DXGI_FORMAT = {
 	"V408",
 	"SAMPLER_FEEDBACK_MIN_MIP_OPAQUE",
 	"SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE",
-	"FORCE_UINT"
-};
+	"FORCE_UINT"};

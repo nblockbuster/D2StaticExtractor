@@ -72,14 +72,13 @@ uint32_t swapUInt32Endianness(uint32_t x)
 uint64_t swapUInt64Endianness(uint64_t k)
 {
 	return ((k << 56) |
-		((k & 0x000000000000FF00) << 40) |
-		((k & 0x0000000000FF0000) << 24) |
-		((k & 0x00000000FF000000) << 8) |
-		((k & 0x000000FF00000000) >> 8) |
-		((k & 0x0000FF0000000000) >> 24) |
-		((k & 0x00FF000000000000) >> 40) |
-		(k >> 56)
-		);
+			((k & 0x000000000000FF00) << 40) |
+			((k & 0x0000000000FF0000) << 24) |
+			((k & 0x00000000FF000000) << 8) |
+			((k & 0x000000FF00000000) >> 8) |
+			((k & 0x0000FF0000000000) >> 24) |
+			((k & 0x00FF000000000000) >> 40) |
+			(k >> 56));
 }
 
 std::string getFileFromHash(std::string hsh)
@@ -88,7 +87,7 @@ std::string getFileFromHash(std::string hsh)
 	uint32_t one = first_int - 2155872256;
 	std::string first_hex = uint16ToHexStr(floor(one / 8192));
 	std::string second_hex = uint16ToHexStr(first_int % 8192);
-	return(first_hex + "-" + second_hex);
+	return (first_hex + "-" + second_hex);
 }
 
 std::string to_str(double a_value)
@@ -115,11 +114,13 @@ int File::getData()
 	Package pkg(pkgID, packagesPath);
 	int fileSize;
 	data = pkg.getEntryData(hash, fileSize);
-	if (data == nullptr || sizeof(data) == 0) return 0;
+	if (data == nullptr || sizeof(data) == 0)
+		return 0;
 	return fileSize;
 }
 
-std::string Logger::currentDateTime() {
+std::string Logger::currentDateTime()
+{
 	time_t now = time(0);
 	struct tm tstruct;
 	char buf[80];

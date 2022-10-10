@@ -4,11 +4,12 @@
 class VertexBuffer : public File
 {
 private:
-	Submesh* submesh;
+	Submesh *submesh;
+
 public:
 	int stride = -1;
 
-	VertexBuffer(std::string x, std::string pkgsPath, int s, Submesh* sub) : File(x, pkgsPath)
+	VertexBuffer(std::string x, std::string pkgsPath, int s, Submesh *sub) : File(x, pkgsPath)
 	{
 		submesh = sub;
 		stride = s;
@@ -29,16 +30,17 @@ public:
 	{
 		stride = s;
 	}
-	void getFaces(Submesh* submesh);
+	void getFaces(Submesh *submesh);
 };
 
 class IndexBufferHeader : public Header
 {
 private:
 	void getHeader(std::string x);
+
 public:
 	int stride = 2;
-	IndexBuffer* indexBuffer = nullptr;
+	IndexBuffer *indexBuffer = nullptr;
 	IndexBufferHeader(std::string x, std::string pkgsPath) : Header(x, pkgsPath)
 	{
 		if (x != "")
@@ -53,10 +55,11 @@ class VertexBufferHeader : public Header
 {
 private:
 	void getHeader(std::string x);
+
 public:
 	int stride = 2;
-	VertexBuffer* vertexBuffer = nullptr;
-	VertexBufferHeader(std::string x, std::string pkgsPath, Submesh* sub) : Header(x, pkgsPath)
+	VertexBuffer *vertexBuffer = nullptr;
+	VertexBufferHeader(std::string x, std::string pkgsPath, Submesh *sub) : Header(x, pkgsPath)
 	{
 		if (x != "")
 		{

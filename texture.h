@@ -50,7 +50,7 @@ struct DXT10Header
 class Texture : public Header
 {
 private:
-	File* dataFile = nullptr;
+	File *dataFile = nullptr;
 	int textureFormat;
 	uint16_t width;
 	uint16_t height;
@@ -61,6 +61,7 @@ private:
 	void getHeader(std::string x);
 	void writeTexture(std::string fullSavePath);
 	void writeFile(DDSHeader dds, DXT10Header dxt, std::string fullSavePath);
+
 public:
 	Texture(std::string x, std::string pkgsPath) : Header(x, pkgsPath)
 	{
@@ -77,8 +78,8 @@ class Material : public File
 private:
 public:
 	std::vector<std::string> cbuffers;
-	std::unordered_map<uint8_t, Texture*> textures;
-	Material(std::string x, std::string pkgsPath) : File(x, pkgsPath) {};
+	std::unordered_map<uint8_t, Texture *> textures;
+	Material(std::string x, std::string pkgsPath) : File(x, pkgsPath){};
 
 	void parseMaterial(std::unordered_map<uint64_t, uint32_t> hash64Table);
 	void exportTextures(std::string fullSavePath, std::string saveFormat);

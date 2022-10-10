@@ -4,24 +4,24 @@
 #include "texture.h"
 #include "parsers.h"
 #include "dxgiformat.h"
-#include <sarge.cpp>
+#include "Sarge\src\sarge.h"
 
 Logger logger;
 
-unsigned char* data = nullptr;
+unsigned char *data = nullptr;
 std::string hash = "";
 std::string pkgID = "";
 std::string packagesPath = "";
 bool lodCulling = true;
 std::string largeHash;
-Submesh* submesh = new Submesh();
-FbxModel* fbxModel = new FbxModel();
+Submesh *submesh = new Submesh();
+FbxModel *fbxModel = new FbxModel();
 int getFile();
-std::vector<FbxNode*> nodes;
-void addVertColSlots(Submesh* submesh);
+std::vector<FbxNode *> nodes;
+void addVertColSlots(Submesh *submesh);
 
 std::vector<LODSplit> IndexLODSplits;
-std::vector<Submesh*> submeshes;
+std::vector<Submesh *> submeshes;
 
 struct LookupTable
 {
@@ -31,8 +31,8 @@ struct LookupTable
 	uint16_t EntryD;
 };
 
-void transformUV(Submesh* sub);
-void transformPos(Submesh* sub, Vector4 pos_off);
+void transformUV(Submesh *sub);
+void transformPos(Submesh *sub, Vector4 pos_off);
 
 std::vector<std::vector<float_t>> trimVertsData(std::vector<std::vector<float_t>> verts, std::set<int> dsort, bool bVertCol);
 bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bTextures, std::string texTypeIn);
