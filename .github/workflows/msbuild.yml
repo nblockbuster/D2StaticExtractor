@@ -2,9 +2,9 @@ name: MSBuild
 
 on:
   push:
-    branches: [ "**" ]
+    branches: [ "lz_prebl" ]
   pull_request:
-    branches: [ "**" ]
+    branches: [ "lz_prebl" ]
 
 env:
   # Path to the solution file relative to the root of the project.
