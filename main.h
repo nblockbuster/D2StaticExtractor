@@ -4,23 +4,21 @@
 #include "texture.h"
 #include "parsers.h"
 #include "dxgiformat.h"
-#include <sarge.cpp>
-//#include <thread>
+#include "Sarge/src/sarge.cpp"
 
 unsigned char* data = nullptr;
 std::string hash = "";
 std::string pkgID = "";
 std::string packagesPath = "";
 bool lodCulling = true;
-std::string largeHash;
+std::string largeHash = "";
 Submesh* submesh = new Submesh();
 FbxModel* fbxModel = new FbxModel();
-int getFile();
 std::vector<FbxNode*> nodes;
-void addVertColSlots(Submesh* submesh);
 
 std::vector<LODSplit> IndexLODSplits;
 std::vector<Submesh*> submeshes;
+
 struct Vector3
 {
 	double x;
@@ -44,8 +42,12 @@ struct LookupTable
 	uint16_t EntryD;
 };
 
+int getFile();
+
 void transformUV();
 void transformPos(float scale, Vector4 pos_off);
 
 std::vector<std::vector<float_t>> trimVertsData(std::vector<std::vector<float_t>> verts, std::set<int> dsort, bool bVertCol);
+void addVertColSlots(Submesh* submesh);
+
 bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, bool bTextures, std::string texTypeIn, std::unordered_map<uint64_t, uint32_t> hash64Table);

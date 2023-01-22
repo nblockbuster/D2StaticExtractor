@@ -1,6 +1,6 @@
 #include "main.h"
 //this is horrible, messy code.
-//read https://github.com/nblockbuster/D2StaticDocs on the basics of statics
+//read https://github.com/nblockbuster/D2StaticDocs on the (now old and terrible documentation) basics of statics
 
 namespace fs = std::filesystem;
 
@@ -73,8 +73,14 @@ int main(int argc, char* argv[])
 	}
 #pragma endregion
 
-	if (BubbleHash != "") 
+	if (BubbleHash != "")
 	{
+		if (!isHashValid(BubbleHash))
+		{
+			std::cerr << "Bubble hash provided is not a valid hash.\n";
+			return(56);
+		}
+		
 		std::ifstream f("h64");
 		if (f) {
 			hash64Table = loadH64Table();
@@ -86,6 +92,7 @@ int main(int argc, char* argv[])
 			hash64Table = generateH64Table(pkgsPath);
 			saveH64Table(hash64Table);
 		}
+		
 		/*
 		* Input hashes must be of class 07878080 — i call them "Bubble Pointers".
 		* These Bubble Pointer files point to ones of class 83988080. - my name for these personally are "DynStaMapPointers" (Dynamic/Static Map Pointers)
@@ -106,7 +113,8 @@ int main(int argc, char* argv[])
 		* 
 		* And the rest is unknown to me!
 		*/
-		if (getReferenceFromHash(BubbleHash, packagesPath) != "07878080") { std::cout << "Not a valid bubble hash.\n"; exit(56); }
+
+		if (getReferenceFromHash(BubbleHash, packagesPath) != "07878080") { std::cerr << "Bubble hash provided is not of type 07878080.\n"; return(56); }
 		hash = BubbleHash;
 		int fileSize;
 		fileSize = getFile();
@@ -195,7 +203,7 @@ int main(int argc, char* argv[])
 					int fileSize;
 					fileSize = getFile();
 					memcpy((char*)&val, data + 0x8, 4);
-					if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80") break;
+					if (!isHashValid(val)) break;
 					std::cout << "-------- " + uint32ToHexStr(val) << "\n";
 					StaticLZs.push_back(uint32ToHexStr(val));
 				}
@@ -231,7 +239,7 @@ int main(int argc, char* argv[])
 		dynamic_point_model->scene->Clear();
 		dynamic_point_model->manager->Destroy();
 
-		if (!StaticLZs.size()) { std::cout << "Static Loadzones Empty.\n"; exit(22); }
+		if (!StaticLZs.size()) { std::cerr << "Static Loadzones Empty.\n"; exit(22); }
 		for (const auto& lz_hash : StaticLZs)
 		{
 			bool result = ExportSingleLoadZone(lz_hash, outputPath + "/" + BubbleHash, false, sarge.exists("texex"), texTypeIn, hash64Table);
@@ -249,15 +257,14 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 	fileSize = getFile();
 	unsigned char* lzdata = data;
 
-
 	std::vector<LookupTable> LUTS;
 	std::vector<Vector4> Translation;
 	std::vector<Vector4> Rotation;
 	std::vector<std::string> TextureFileLines;
 	uint32_t modelCount, val, tableOffset, posCount, posTableOff, posLookupTable, posLookupCount;
 	uint16_t lookupVal;
+	
 	//WQ Values
-
 	memcpy((char*)&posTableOff, lzdata + 0x48, 4);
 	memcpy((char*)&modelCount, lzdata + 0x78, 4);
 	memcpy((char*)&tableOffset, lzdata + 0x80, 4);
@@ -265,6 +272,7 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 	tableOffset += 0x90;
 	posLookupTable += 0x90;
 	posTableOff += 0x48;
+	
 	//BL Values
 	if (bl)
 	{
@@ -289,9 +297,10 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 	memcpy((char*)&posCount, lzdata + posTableOff, 4);
 	posTableOff += 0x10;
 
-	float quatx, quaty, quatz, quatw, fx, fy, fz, lzscale;
+	float quatx, quaty, quatz, quatw;
+	float fx, fy, fz, lzscale;
 	int l = 0;
-	for (int p = posTableOff; p < posTableOff + (posCount * 48); p += 0x20) {
+	for (int p = posTableOff; p < posTableOff + (posCount * 0x40); p += 0x30) {
 		memcpy((char*)&quatx, lzdata + p, 4);
 		memcpy((char*)&quaty, lzdata + p + 4, 4);
 		memcpy((char*)&quatz, lzdata + p + 8, 4);
@@ -301,12 +310,12 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 		memcpy((void*)&fy, lzdata + p + 4, 4);
 		memcpy((void*)&fz, lzdata + p + 8, 4);
 		memcpy((void*)&lzscale, lzdata + p + 0xC, 4);
-		quatx *= -1;
-		quatz *= -1;
-		quatw *= -1;
+		//quatw *= -1;
+		//quatx *= -1;
+		//quatz *= -1;
 		fy *= -1;
 		Rotation.push_back({ quatx, quaty, quatz, quatw });
-		Translation.push_back({ fx, fz, fy, lzscale });
+		Translation.push_back({ fx, fy, fz, lzscale });
 		l += 1;
 	}
 	for (int o = posLookupTable; o < posLookupTable + (posLookupCount * 8); o += 0x8)
@@ -327,8 +336,8 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 		modelHashes.push_back(uint32ToHexStr(val));
 	}
 	delete[] lzdata;
-	std::string mainModelHash;
-	int m;
+	std::string mainModelHash = "";
+	int m = 0;
 	for (int a = 0; a < modelHashes.size(); a++)
 	{
 		mainModelHash = modelHashes.at(a);
@@ -347,13 +356,14 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 				node->SetName(name.c_str());
 				double loadscale = Translation.at(m).w * 100;
 				node->LclScaling.Set(FbxDouble3(loadscale));
-				node->LclTranslation.Set(FbxDouble3(Translation.at(m).x * 100, Translation.at(m).y * 100, Translation.at(m).z * 100));
+				node->LclTranslation.Set(FbxDouble3(Translation.at(m).x * 100, Translation.at(m).z * 100, Translation.at(m).y * 100));
 				FbxQuaternion fq = FbxQuaternion(Rotation.at(m).x, Rotation.at(m).y, Rotation.at(m).z, Rotation.at(m).w);
 				FbxVector4 fe2;
 				fe2.SetXYZ(fq);
-				node->LclRotation.Set(fe2);
+				node->SetGeometricRotation(FbxNode::eSourcePivot, fe2);
+				//node->LclRotation.Set(FbxDouble3(90, 180, 0));
 				std::cout << "(Instanced) " + name << "\n";
-				std::cout << "(Instanced) X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).y * 100) + " Z: " + to_str(Translation.at(m).z * 100) + " Scale: " + to_str(Translation.at(m).w * 100) << "\n";
+				std::cout << "(Instanced) X: " + to_str(Translation.at(m).x) + " Y: " + to_str(Translation.at(m).y) + " Z: " + to_str(Translation.at(m).z) + " Scale: " + to_str(Translation.at(m).w) << "\n";
 				std::cout << "(Instanced) X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).y) + " Z Rot: " + to_str(Rotation.at(m).z) + " W Rot: " + to_str(Rotation.at(m).w) << "\n";
 				nodes.push_back(node);
 				ab++;
@@ -375,7 +385,7 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 			memcpy((char*)&y_off, data + 0x54, 4);
 			memcpy((char*)&z_off, data + 0x58, 4);
 			memcpy((char*)&scale, data + 0x5C, 4);
-			//needs adjustment!!
+			//needs adjustment!! !?
 			pos_off.x = x_off;
 			pos_off.y = y_off;
 			pos_off.z = z_off;
@@ -388,12 +398,12 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 			fileSize = getFile();
 			uint32_t val;
 			memcpy((char*)&val, data + fileSize - 0x14, 4);
-			if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80") break;
+			if (!isHashValid(val)) break;
 
 			IndexBufferHeader* indexBufHeader = new IndexBufferHeader(uint32ToHexStr(val), packagesPath);
 
 			memcpy((char*)&val, data + fileSize - 0x10, 4);
-			if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80") break;
+			if (!isHashValid(val)) break;
 
 			VertexBuffer* vertBuf = new VertexBuffer(getReferenceFromHash(uint32ToHexStr(val), packagesPath), packagesPath, submesh);
 
@@ -401,7 +411,7 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 
 			if (val != 0xFFFFFFFF)
 			{
-				if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80") break;
+				if (!isHashValid(val)) break;
 				VertexBuffer* vertUVBuf = new VertexBuffer(getReferenceFromHash(uint32ToHexStr(val), packagesPath), packagesPath, submesh);
 				vertUVBuf->parseVertUV();
 			}
@@ -410,7 +420,7 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 
 			if (val != 0xFFFFFFFF)
 			{
-				if (uint32ToHexStr(val).substr(uint32ToHexStr(val).length() - 2, 2) != "80") break;
+				if (!isHashValid(val)) break;
 				VertexBuffer* vertVCBuf = new VertexBuffer(getReferenceFromHash(uint32ToHexStr(val), packagesPath), packagesPath, submesh);
 				vertVCBuf->parseVertexColor();
 				addVertColSlots(submesh);
@@ -510,12 +520,15 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 				orignode->SetName(submeshes[p]->name.c_str());
 				double loadscale = Translation.at(m).w * 100;
 				orignode->LclScaling.Set(FbxDouble3(loadscale));
-				orignode->LclTranslation.Set(FbxDouble3(Translation.at(m).x * 100, Translation.at(m).y * 100, Translation.at(m).z * 100));
+				orignode->LclTranslation.Set(FbxDouble3(Translation.at(m).x * 100, Translation.at(m).z * 100, Translation.at(m).y * 100));
 				FbxQuaternion fq = FbxQuaternion(Rotation.at(m).x, Rotation.at(m).y, Rotation.at(m).z, Rotation.at(m).w);
 				FbxVector4 fe2;
 				fe2.SetXYZ(fq);
-				orignode->LclRotation.Set(fe2);
-				std::cout << "X: " + to_str(Translation.at(m).x * 100) + " Y: " + to_str(Translation.at(m).y * 100) + " Z: " + to_str(Translation.at(m).z * 100) + " Scale: " + to_str(Translation.at(m).w * 100) << "\n";
+				//fe2 = fq.DecomposeSphericalXYZ();
+				orignode->SetGeometricRotation(FbxNode::eSourcePivot, fe2);
+				//orignode->LclRotation.Set(FbxDouble3(90, 0, 0));
+				//std::cout << to_str(fe2[0]) << " " << to_str(fe2[1]) << " " << to_str(fe2[2]) << '\n';
+				std::cout << "X: " + to_str(Translation.at(m).x) + " Y: " + to_str(Translation.at(m).y) + " Z: " + to_str(Translation.at(m).z) + " Scale: " + to_str(Translation.at(m).w) << "\n";
 				std::cout << "X Rot: " + to_str(Rotation.at(m).x) + " Y Rot: " + to_str(Rotation.at(m).y) + " Z Rot: " + to_str(Rotation.at(m).z) + " W Rot: " + to_str(Rotation.at(m).w) << "\n";
 				nodes.push_back(orignode);
 				/*
@@ -685,9 +698,12 @@ void transformPos(float scale, Vector4 pos_off)
 {
 	for (auto& vert : submesh->vertPos)
 	{
-		vert[0] *= (pos_off.w + pos_off.x);
-		vert[1] *= (pos_off.w + pos_off.z);
-		vert[2] *= (pos_off.w + pos_off.y);
+		//vert[0] *= (pos_off.w + pos_off.x);
+		//vert[1] *= (pos_off.w + pos_off.z);
+		//vert[2] *= (pos_off.w + pos_off.y);
+		vert[0] *= pos_off.w;
+		vert[1] *= pos_off.w;
+		vert[2] *= pos_off.w;
 	}
 }
 

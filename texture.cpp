@@ -157,7 +157,7 @@ void Material::parseMaterial(std::unordered_map<uint64_t, uint32_t> hash64Table)
                 textures[textureIndex] = texture;
             }
         }
-        else if (h64Check.substr(h64Check.length() - 2) == "80" && h64Check.substr(h64Check.length() - 4) != "8080")
+        else if (isHashValid(h64Check))
         {
             std::string textureHash = h64Check;// getReferenceFromHash(h64Check, packagesPath);
             //std::cout << textureHash + "\n"; //debugging nonsense

@@ -37,11 +37,11 @@ std::string getPkgID(std::string hash);
 uint16_t getPkgID(uint32_t hash);
 
 std::string getFileFromHash(std::string hsh);
-std::string load3(const std::string& path);
 
-void filePutContents(const std::string& name, const std::string& content);
+std::string to_str(double a_value, int precision = 8);
 
-std::string to_str(double a_value);
+bool isHashValid(uint32_t hash);
+bool isHashValid(std::string hash);
 
 struct LODSplit
 {
