@@ -35,11 +35,8 @@ std::string getPkgID(std::string hash)
 
 uint16_t getPkgID(uint32_t hash)
 {
-	if ((hash & 0x01000000) != 0)
-	{
-		return (int)((hash >> 0xD) & 0x3FF) | 0x400;
-	}
-	return (int)((hash >> 0xD) & 0x3FF);
+	uint16_t pkgID = floor((hash - 0x80800000) / 8192);
+	return pkgID;
 }
 
 uint32_t hexStrToUint16(std::string hash)

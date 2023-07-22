@@ -1,6 +1,4 @@
 #include "main.h"
-//this is horrible, messy code.
-//read https://github.com/nblockbuster/D2StaticDocs on the (now old and terrible documentation) basics of statics
 
 namespace fs = std::filesystem;
 
@@ -47,6 +45,7 @@ int main(int argc, char* argv[])
 	sarge.getFlag("outputpath", outputPath);
 	sarge.getFlag("filetype", texTypeIn);
 	sarge.getFlag("bubhash", BubbleHash);
+	sarge.getFlag("inputhash", modelHash);
 	lodCulling = true;
 	if (sarge.exists("lodcull"))
 		lodCulling = false;
@@ -58,29 +57,23 @@ int main(int argc, char* argv[])
 
 #pragma region H64
 	std::unordered_map<uint64_t, uint32_t> hash64Table;
-	if (sarge.exists("texex")) {
-		std::ifstream f("h64");
-		if (f) {
-			hash64Table = loadH64Table();
-			if (hash64Table.size() < 10000) {
-				hash64Table = generateH64Table(pkgsPath);
-			}
-		}
-		else {
+	//if (sarge.exists("texex")) {
+	std::ifstream f("h64");
+	if (f) {
+		hash64Table = loadH64Table();
+		if (hash64Table.size() < 10000) {
 			hash64Table = generateH64Table(pkgsPath);
-			saveH64Table(hash64Table);
 		}
 	}
+	else {
+		hash64Table = generateH64Table(pkgsPath);
+		saveH64Table(hash64Table);
+	}
+	//}
 #pragma endregion
 
-	if (BubbleHash != "")
+	if (BubbleHash != "") 
 	{
-		if (!isHashValid(BubbleHash))
-		{
-			std::cerr << "Bubble hash provided is not a valid hash.\n";
-			return(56);
-		}
-		
 		std::ifstream f("h64");
 		if (f) {
 			hash64Table = loadH64Table();
@@ -92,17 +85,16 @@ int main(int argc, char* argv[])
 			hash64Table = generateH64Table(pkgsPath);
 			saveH64Table(hash64Table);
 		}
-		
 		/*
-		* Input hashes must be of class 07878080 — i call them "Bubble Pointers".
+		* Input hashes must be of class 07878080 ï¿½ i call them "Bubble Pointers".
 		* These Bubble Pointer files point to ones of class 83988080. - my name for these personally are "DynStaMapPointers" (Dynamic/Static Map Pointers)
-		* 
-		* If the file has a reference to a static loadzone file, the data would just be 0-0—0—1 for rotation (quaternion) and 0-0-0-1 for pos/scale (XZY-Scale)
+		*
+		* If the file has a reference to a static loadzone file, the data would just be 0-0ï¿½0ï¿½1 for rotation (quaternion) and 0-0-0-1 for pos/scale (XZY-Scale)
 		* These files also have references to Dyn1 Header files as hash64 that can be put into MDE to get the object, for example a static reference will most likely be a plane
 		* If the file has references to dynamics, the data layout would be the same as static ones, just with much more data.
-		* 
+		*
 		* For each 144 byte block in the 85988080 table, the layout would be like this:
-		* 
+		*
 		* 0x00 - Quaternionic rotation values (XYZW)
 		* 0x10 - Position values (XYZ, Scale)
 		* 0x20 - Hash64 Check (Should always be 0xFFFFFFFF)
@@ -110,7 +102,7 @@ int main(int argc, char* argv[])
 		* 0x28 - Unk28
 		* 0x2C - Unk2C
 		* 0x30 - Hash64 Value
-		* 
+		*
 		* And the rest is unknown to me!
 		*/
 
@@ -163,11 +155,10 @@ int main(int argc, char* argv[])
 				memcpy((void*)&fy, pbdata + p + 0x14, 4);
 				memcpy((void*)&fz, pbdata + p + 0x18, 4);
 				memcpy((void*)&lzscale, pbdata + p + 0x1C, 4);
-				//These might not be right, i havent tested them yet.
 				quaty *= -1;
-				quatz *= -1;
+				//quatz *= -1;
 				quatw *= -1;
-				fx *= -1;
+				fy *= -1;
 				Rotation.push_back({ quatx, quaty, quatz, quatw });
 				Translation.push_back({ fx, fy, fz, lzscale });
 				uint32_t h64Check;
@@ -219,23 +210,23 @@ int main(int argc, char* argv[])
 				node->LclScaling.Set(FbxDouble3(loadscale));
 				//node->LclTranslation.Set(FbxDouble3(fx * 100, fz * 100, fy * 100));
 				node->LclTranslation.Set(FbxDouble3(Translation.at(i).x * 100, Translation.at(i).z * 100, Translation.at(i).y * 100));
-				FbxQuaternion fq = FbxQuaternion(Rotation.at(i).x, Rotation.at(i).z, Rotation.at(i).y, Rotation.at(i).w);
-				FbxVector4 fe2;
-				fe2.SetXYZ(fq);
-				node->LclRotation.Set(fe2);
+				//Vector3 EulerRot = QuatToEulerAngles(Vector4({ Rotation.at(i).x, Rotation.at(i).y, Rotation.at(i).z, Rotation.at(i).w }));
+				//node->LclRotation.Set(FbxDouble3({ EulerRot.x, EulerRot.y, EulerRot.z }));
+				FbxQuaternion Quat = FbxQuaternion(Rotation.at(i).x, Rotation.at(i).y, Rotation.at(i).z, Rotation.at(i).w);
+				FbxDouble3 EulerAngle = Quat.DecomposeSphericalXYZ();
+				node->LclRotation.Set(EulerAngle);
 				DynPointNodes.push_back(node);
 			}
-			for (const auto& dyn_node : DynPointNodes)
-			{
-				dynamic_point_model->scene->GetRootNode()->AddChild(dyn_node);
-				std::string full_dyn_path = outputPath + "/" + BubbleHash + "/DynPoints/" + pbhash + "_Dyn_" + dyn_node->GetName();
-				fs::create_directories(outputPath + "/" + BubbleHash + "/DynPoints/");
-				dynamic_point_model->save(full_dyn_path, false);
-			}
+
+			for (const auto& dyn_node : DynPointNodes) { dynamic_point_model->scene->GetRootNode()->AddChild(dyn_node); }
+			//dynamic_point_model->scene->GetRootNode()->LclRotation.Set(FbxDouble3(0, -180, 0));
+			std::string full_dyn_path = outputPath + "/" + BubbleHash + "/DynPoints/" + pbhash + "_DynPoints";
+			fs::create_directories(outputPath + "/" + BubbleHash + "/DynPoints/");
+			dynamic_point_model->save(full_dyn_path, false);
 			DynPointNodes.clear();
 
 		}
-		
+
 		dynamic_point_model->scene->Clear();
 		dynamic_point_model->manager->Destroy();
 
@@ -246,7 +237,282 @@ int main(int argc, char* argv[])
 			if (!result) exit(25);
 		}
 	}
+	else if (modelHash != "")
+	{
+		Vector4 pos_off;
+		int fileSize;
+		hash = modelHash;
+		if (getReferenceFromHash(hash, packagesPath) != "446d8080") exit(67);
+		fileSize = getFile();
+
+		uint32_t sfhash32;
+		memcpy((char*)&sfhash32, data + 0x8, 4);
+
+		float unk44, x_off, y_off, z_off, scale;
+		memcpy((char*)&unk44, data + 0x44, 4);
+		memcpy((char*)&x_off, data + 0x50, 4);
+		memcpy((char*)&y_off, data + 0x54, 4);
+		memcpy((char*)&z_off, data + 0x58, 4);
+		memcpy((char*)&scale, data + 0x5C, 4);
+		pos_off.x = x_off;
+		pos_off.y = y_off;
+		pos_off.z = z_off;
+		pos_off.w = scale;
+
+		uint32_t extOff = 0;
+		delete[] data;
+		hash = uint32ToHexStr(sfhash32);
+		if (getReferenceFromHash(hash, packagesPath) != "306d8080") exit(68);
+		fileSize = getFile();
+		uint32_t val;
+		memcpy((char*)&val, data + fileSize - 0x14, 4);
+		if (!isHashValid(val)) exit(14);
+
+		IndexBufferHeader* indexBufHeader = new IndexBufferHeader(uint32ToHexStr(val), packagesPath);
+
+		memcpy((char*)&val, data + fileSize - 0x10, 4);
+		if (!isHashValid(val)) exit(24);
+
+		VertexBuffer* vertBuf = new VertexBuffer(getReferenceFromHash(uint32ToHexStr(val), packagesPath), packagesPath, submesh);
+
+		memcpy((char*)&val, data + fileSize - 0xC, 4);
+
+		if (val != 0xFFFFFFFF)
+		{
+			if (!isHashValid(val)) exit(16);
+			VertexBuffer* vertUVBuf = new VertexBuffer(getReferenceFromHash(uint32ToHexStr(val), packagesPath), packagesPath, submesh);
+			vertUVBuf->parseVertUV();
+		}
+
+		memcpy((char*)&val, data + fileSize - 0x8, 4);
+
+		if (val != 0xFFFFFFFF)
+		{
+			if (!isHashValid(val)) exit(8);
+			VertexBuffer* vertVCBuf = new VertexBuffer(getReferenceFromHash(uint32ToHexStr(val), packagesPath), packagesPath, submesh);
+			vertVCBuf->parseVertexColor();
+			addVertColSlots(submesh);
+		}
+		float uoff, voff, uscale, vscale;
+		memcpy((char*)&uscale, data + 0x48, 4);
+		memcpy((char*)&vscale, data + 0x50, 4);
+		
+		memcpy((char*)&uoff, data + 0x54, 4);
+		memcpy((char*)&voff, data + 0x58, 4);
+		
+		submesh->scales.push_back(uscale);
+		submesh->scales.push_back(vscale);
+		
+		submesh->offset.push_back(uoff);
+		submesh->offset.push_back(voff);
+
+		vertBuf->parseVertPos();
+		indexBufHeader->indexBuffer->getFaces(submesh);
+		vertBuf->parseVertNorm();
+		
+		transformPos(pos_off, unk44);
+		transformUV();
+
+		if (!submesh->faces.size() || !submesh->vertPos.size())
+			exit(6060);
+
+		if (lodCulling)
+		{
+			uint32_t amountLOD, lodTableOffset;
+			memcpy((char*)&lodTableOffset, data + 0x20, 4);
+			lodTableOffset += 0x20;
+			memcpy((char*)&amountLOD, data + lodTableOffset, 4);
+			lodTableOffset += 0x10;
+			for (int o = lodTableOffset; o < lodTableOffset + (amountLOD * 12); o += 12) {
+				LODSplit split;
+				memcpy((char*)&split.IndexOffset, data + o, 4);
+				memcpy((char*)&split.IndexCount, data + o + 4, 4);
+				memcpy((char*)&split.DetailLevel, data + o + 0xA, 1);
+				if (split.DetailLevel == 1)
+					submesh->lodsplit.push_back(split);
+				else
+					continue;
+			}
+
+			delete[] data;
+
+
+			for (const auto& split : submesh->lodsplit) {
+				if (!submesh->faces.size() || !submesh->vertPos.size())
+					break;
+				Submesh* newsub = new Submesh();
+				for (int i = split.IndexOffset; i < split.IndexOffset + split.IndexCount; i++) {
+					newsub->faces.push_back(submesh->faces[i / 3]);
+				}
+				std::set<int> dsort;
+				for (auto& face : newsub->faces)
+				{
+					for (auto& f : face)
+					{
+						dsort.insert(f);
+					}
+				}
+				if (!dsort.size()) {
+					dsort.clear();
+					continue;
+				}
+				std::unordered_map<int, int> d;
+				int i = 0;
+				for (auto& val : dsort)
+				{
+					d[val] = i;
+					i++;
+				}
+				for (auto& face : newsub->faces)
+				{
+					for (auto& f : face)
+					{
+						f = d[f];
+					}
+				}
+				newsub->vertPos = trimVertsData(submesh->vertPos, dsort, false);
+				if (submesh->vertUV.size()) newsub->vertUV = trimVertsData(submesh->vertUV, dsort, false);
+				if (submesh->vertNorm.size()) newsub->vertNorm = trimVertsData(submesh->vertNorm, dsort, false);
+				if (submesh->vertCol.size()) newsub->vertCol = trimVertsData(submesh->vertCol, dsort, true);
+				if (submesh->vertColSlots.size()) newsub->vertColSlots = submesh->vertColSlots;
+				submeshes.push_back(newsub);
+				dsort.clear();
+				d.clear();
+			}
+		}
+		else {
+			delete[] data;
+			submeshes.push_back(submesh);
+		}
+
+
+		for (int p = 0; p < submeshes.size(); p++)
+		{
+			Submesh* sub = submeshes[p];
+			sub->name = modelHash + "_" + std::to_string(p);
+			FbxNode* node = fbxModel->addSubmeshToFbx(sub);
+			nodes.push_back(node);
+			sub->clear();
+			free(sub);
+			/*
+			if (bTextures)
+			{
+				submesh->exportTextures = true;
+				std::string fullSavePath = outputPath + "/textures/";
+				fs::create_directories(fullSavePath);
+				std::string texType;
+				bool found = false;
+				std::vector<std::string> validTypes = { "png","jpg","jpeg","bmp","dds","tga","hdr","tif","tiff","wdp","hdp","jxr","ppm","pfm" };
+				while (true) {
+					if (texTypeIn == "") {
+						texType = "PNG";
+						break;
+					}
+					for (const auto& type : validTypes)
+					{
+						if (boost::iequals(texTypeIn, type)) {
+							found = true;
+							texType = boost::to_upper_copy(type);
+							break;
+						}
+					}
+					if (found)
+						break;
+					else {
+						texType = "PNG";
+						break;
+					}
+				}
+
+				submesh->exportFormat = texType;
+				hash = mainModelHash;
+				fileSize = getFile();
+				uint32_t extOff, val;
+				memcpy((char*)&extOff, data + 0x18, 4);
+				extOff += 0x18;
+				std::vector<Material*> externalMaterials;
+				uint32_t extCount;
+				memcpy((char*)&extCount, data + extOff, 4);
+				extOff += 0x10;
+				std::set<std::uint32_t> existingMats;
+				for (int j = extOff; j < extOff + extCount * 4; j += 4)
+				{
+					memcpy((char*)&val, data + j, 4);
+					if (existingMats.find(val) == existingMats.end())
+					{
+						Material* mat = new Material(uint32ToHexStr(val), packagesPath);
+						externalMaterials.push_back(mat);
+						existingMats.insert(val);
+						submesh->materials.push_back(mat);
+					}
+				}
+
+
+				//for (auto mat : externalMaterials)
+				//{
+					MapExportTextures(submesh, outputPath, hash64Table);
+					//mat->parseMaterial(hash64Table);
+					//mat->exportTextures(fullSavePath, texType);
+					//txtline = mainModelHash + "[" + mat->hash + "]: ";
+					//for (auto t : mat->textures) {
+						//if (t.second->hash == "") continue;
+						//txtline += t.second->hash + ", ";
+					//}
+				//}
+				//TextureFileLines.push_back(txtline);
+			}
+			*/
+			submeshes[p]->clear();
+			// free(submeshes[p]);
+		}
+		submesh->clear();
+
+		if (nodes.size()) {
+			for (auto& node : nodes) { fbxModel->scene->GetRootNode()->AddChild(node); }
+			std::string fbxpath = outputPath + "/" + modelHash + ".fbx";
+			fbxModel->save(fbxpath, false);
+		}
+		submeshes.clear();
+		free(submesh);
+		fbxModel->manager->Destroy();
+
+		std::cout << modelHash + ".fbx extracted.\n";
+	}
 }
+
+Vector3 QuatToEulerAngles(Vector4 q)
+{
+	Vector3 retVal;
+	double sinr_cosp = +2.0 * (q.w * q.x + q.y * q.z);
+	double cosr_cosp = +1.0 - 2.0 * (q.x * q.x + q.y * q.y);
+	retVal.x = atan2(sinr_cosp, cosr_cosp);
+
+	double sinp = +2.0 * (q.w * q.y - q.z * q.x);
+	double absSinP = abs(sinp);
+	bool bSinPOutOfRange = absSinP >= 1.0;
+	if (bSinPOutOfRange)
+	{
+		retVal.y = 90.0f;
+	}
+	else
+	{
+		retVal.y = asin(sinp);
+	}
+
+	double siny_cosp = +2.0 * (q.w * q.z + q.x + q.y);
+	double cosy_cosp = +1.0 - 2.0 * (q.y * q.y + q.z * q.z);
+	retVal.z = atan2(siny_cosp, cosy_cosp);
+
+	retVal.x *= 180.0f / M_PI;
+	if (!bSinPOutOfRange)
+	{
+		retVal.y *= 180.0f / M_PI;
+	}
+	retVal.z *= 180.0f / M_PI;
+
+	return retVal;
+}
+
 
 bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, bool bTextures, std::string texTypeIn, std::unordered_map<uint64_t, uint32_t> hash64Table)
 {
@@ -310,12 +576,12 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 		memcpy((void*)&fy, lzdata + p + 4, 4);
 		memcpy((void*)&fz, lzdata + p + 8, 4);
 		memcpy((void*)&lzscale, lzdata + p + 0xC, 4);
-		//quatw *= -1;
-		//quatx *= -1;
-		//quatz *= -1;
+		quatx *= -1;
+		quatz *= -1;
+		quatw *= -1;
 		fy *= -1;
 		Rotation.push_back({ quatx, quaty, quatz, quatw });
-		Translation.push_back({ fx, fy, fz, lzscale });
+		Translation.push_back({ fx, fz, fy, lzscale });
 		l += 1;
 	}
 	for (int o = posLookupTable; o < posLookupTable + (posLookupCount * 8); o += 0x8)
@@ -354,7 +620,10 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 				FbxNode* node = FbxNode::Create(fbxModel->manager, name.c_str());
 				node->SetNodeAttribute(orignode->GetMesh());
 				node->SetName(name.c_str());
+				FbxDouble3 fe(0, 0, 0);
+				node->SetGeometricTranslation(FbxNode::eSourcePivot, fe);
 				double loadscale = Translation.at(m).w * 100;
+				//double loadscale = Translation.at(m).w;
 				node->LclScaling.Set(FbxDouble3(loadscale));
 				node->LclTranslation.Set(FbxDouble3(Translation.at(m).x * 100, Translation.at(m).z * 100, Translation.at(m).y * 100));
 				FbxQuaternion fq = FbxQuaternion(Rotation.at(m).x, Rotation.at(m).y, Rotation.at(m).z, Rotation.at(m).w);
@@ -380,7 +649,8 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 			uint32_t sfhash32;
 			memcpy((char*)&sfhash32, data + 0x8, 4);
 
-			float x_off, y_off, z_off, scale;
+			float unk44, x_off, y_off, z_off, scale;
+			memcpy((char*)&unk44, data + 0x44, 4);
 			memcpy((char*)&x_off, data + 0x50, 4);
 			memcpy((char*)&y_off, data + 0x54, 4);
 			memcpy((char*)&z_off, data + 0x58, 4);
@@ -426,10 +696,10 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 				addVertColSlots(submesh);
 			}
 			float uoff, voff, uscale, vscale;
-			memcpy((char*)&uscale, data + 0x44, 4);
-			memcpy((char*)&vscale, data + 0x48, 4);
-			memcpy((char*)&uoff, data + 0x4c, 4);
-			memcpy((char*)&voff, data + 0x50, 4);
+			memcpy((char*)&uscale, data + 0x48, 4);
+			memcpy((char*)&vscale, data + 0x50, 4);
+			memcpy((char*)&uoff, data + 0x4C, 4);
+			memcpy((char*)&voff, data + 0x54, 4);
 			submesh->scales.push_back(uscale);
 			submesh->scales.push_back(vscale);
 			submesh->offset.push_back(uoff);
@@ -438,7 +708,7 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 			vertBuf->parseVertPos();
 			indexBufHeader->indexBuffer->getFaces(submesh);
 			vertBuf->parseVertNorm();
-			transformPos(scale, pos_off);
+			transformPos(pos_off, unk44);
 			transformUV();
 
 			if (!submesh->faces.size() || !submesh->vertPos.size())
@@ -519,6 +789,7 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 				orignode = fbxModel->addSubmeshToFbx(submeshes[p]);
 				orignode->SetName(submeshes[p]->name.c_str());
 				double loadscale = Translation.at(m).w * 100;
+				//double loadscale = Translation.at(m).w;
 				orignode->LclScaling.Set(FbxDouble3(loadscale));
 				orignode->LclTranslation.Set(FbxDouble3(Translation.at(m).x * 100, Translation.at(m).z * 100, Translation.at(m).y * 100));
 				FbxQuaternion fq = FbxQuaternion(Rotation.at(m).x, Rotation.at(m).y, Rotation.at(m).z, Rotation.at(m).w);
@@ -618,7 +889,11 @@ bool ExportSingleLoadZone(std::string lzHash, std::string outputPath, bool bl, b
 	FbxNode* master_map_empty = fbxModel->scene->GetRootNode()->Create(fbxModel->manager, bubbleName.c_str());
 	master_map_empty->SetNodeAttribute(nullptr);
 	//for (auto& node : nodes) { master_map_empty->AddChild(node); }// applyMaterial(fbxModel, submesh, node); }
-	for (auto& node : nodes) { fbxModel->scene->GetRootNode()->AddChild(node); }
+	for (auto& node : nodes) {
+		FbxDouble3 fe(0, 0, 0);
+		node->SetGeometricTranslation(FbxNode::eSourcePivot, fe);
+		fbxModel->scene->GetRootNode()->AddChild(node);
+	}
 	//fbxModel->scene->GetRootNode()->AddChild(master_map_empty);
 	fbxModel->save(fbxpath, false);
 	nodes.clear();
@@ -690,20 +965,17 @@ void transformUV()
 	for (auto& vert : submesh->vertUV)
 	{
 		vert[0] = vert[0] * submesh->scales[0] + submesh->offset[0];
-		vert[1] = vert[1] * -submesh->scales[1] + (1 - submesh->offset[1]);
+		vert[1] = vert[1] * -submesh->scales[1] + -submesh->offset[1];
 	}
 }
 
-void transformPos(float scale, Vector4 pos_off)
+void transformPos(Vector4 pos_off, float unk44)
 {
 	for (auto& vert : submesh->vertPos)
 	{
-		//vert[0] *= (pos_off.w + pos_off.x);
-		//vert[1] *= (pos_off.w + pos_off.z);
-		//vert[2] *= (pos_off.w + pos_off.y);
-		vert[0] *= pos_off.w;
-		vert[1] *= pos_off.w;
-		vert[2] *= pos_off.w;
+		vert[0] = (vert[0] * pos_off.w) + pos_off.x;
+		vert[1] = (vert[1] * pos_off.w) + pos_off.y;
+		vert[2] = (vert[2] * pos_off.w) + pos_off.z;
 	}
 }
 
